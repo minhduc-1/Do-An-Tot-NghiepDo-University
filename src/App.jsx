@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, Wallet, Target, PieChart, Receipt, Settings as SettingsIcon, LogOut, Moon, Sun, ShieldCheck } from 'lucide-react';
+
 import Dashboard from './components/Dashboard';
 import TransactionForm from './components/TransactionForm';
 import GoalForm from './components/GoalForm';
@@ -7,19 +10,11 @@ import Reports from './components/Reports';
 import Settings from './components/Settings';
 import DebtManager from './components/DebtManager';
 import AdminDashboard from './components/AdminDashboard';
+
 import { saveData, loadData } from './services/StorageService';
 import { logAction } from './services/AuditService';
 
-// --- SVG Icons ---
-const IconDashboard = () => <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>;
-const IconExpense = () => <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 11v-5a2 2 0 012-2h2a2 2 0 012 2v5m-6 4h6m-3-4v8m-7 5h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>;
-const IconIncome = () => <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>;
-const IconGoal = () => <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>;
-const IconDebt = () => <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>;
-const IconChart = () => <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>;
-const IconSettings = () => <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>;
-
-function App() {
+export default function App() {
   const [user, setUser] = useState(null); 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
@@ -31,25 +26,32 @@ function App() {
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currency, setCurrency] = useState('VND'); 
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   
   const defaultTx = [
-    { id: '1', date: '24/04/2022', category: 'Siêu Thị', amount: -500000, note: 'Mua sắm đồ ăn' },
-    { id: '2', date: '22/04/2022', category: 'Tiền Điện', amount: -1200000, note: 'Thanh toán hóa đơn' },
-    { id: '3', date: '20/04/2022', category: 'Xăng Xe', amount: -300000, note: 'Đổ xăng' },
-    { id: '4', date: '18/04/2022', category: 'Lương', amount: 15000000, note: 'Lương tháng 4' }
+    { id: '1', date: '24/04/2026', category: 'Siêu Thị', amount: -500000, note: 'Mua sắm đồ ăn' },
+    { id: '2', date: '22/04/2026', category: 'Tiền Điện', amount: -1200000, note: 'Thanh toán hóa đơn' },
+    { id: '3', date: '20/04/2026', category: 'Lương', amount: 15000000, note: 'Lương tháng 4' }
   ];
   const [transactions, setTransactions] = useState(() => loadData('tx_data', defaultTx));
 
   const defaultGoals = [
-    { id: '1', name: 'Du Lịch Đà Nẵng', target: 30000000, current: 10000000, percent: 30 },
-    { id: '2', name: 'Quỹ Mua Xe', target: 110000000, current: 45000000, percent: 45 },
-    { id: '3', name: 'Quỹ Khẩn Cấp', target: 50000000, current: 35000000, percent: 70 }
+    { id: '1', name: 'Du Lịch Châu Âu', target: 50000000, current: 15000000, percent: 30 },
+    { id: '2', name: 'Quỹ Mua Xe', target: 110000000, current: 45000000, percent: 40 }
   ];
   const [goals, setGoals] = useState(() => loadData('goals_data', defaultGoals));
 
-  // Sync to secure storage
+  // Sync Data
   useEffect(() => { saveData('tx_data', transactions); }, [transactions]);
   useEffect(() => { saveData('goals_data', goals); }, [goals]);
+
+  // Sync Theme
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   // Idle Logout Mechanism
   const timeoutRef = useRef(null);
@@ -76,7 +78,7 @@ function App() {
   const handleLoginSubmit = (e) => {
     e.preventDefault();
     if (lockedUntil && Date.now() < lockedUntil) {
-      alert(`Thiết bị đang bị khoá bảo mật. Vui lòng đợi ${Math.ceil((lockedUntil - Date.now())/1000)} giây để thử lại.`);
+      alert(`Thiết bị đang bị khoá bảo mật. Vui lòng thử lại sau vài giây.`);
       return;
     }
 
@@ -89,11 +91,11 @@ function App() {
        logAction(email, 'Đăng nhập sai', `Sai mật khẩu lần ${fails}`);
        
        if (fails >= 3) {
-          setLockedUntil(Date.now() + 30000); // Lock 30s
+          setLockedUntil(Date.now() + 30000);
           logAction(email, 'Cảnh báo/Hệ thống', 'Tạm khóa thiết bị 30s do đăng nhập sai 3 lần');
           alert('Nhập sai 3 lần! Tạm khoá đăng nhập 30 giây để bảo vệ tài khoản.');
        } else {
-          alert('Sai mật khẩu! (Gợi ý: 123456 hoặc "admin" cho quyền root)');
+          alert('Sai mật khẩu! (Gợi ý: 123456 hoặc "admin")');
        }
        return;
     }
@@ -120,7 +122,7 @@ function App() {
       setUser({
         email: pendingEmail,
         name: pendingEmail.split('@')[0],
-        avatar: `https://ui-avatars.com/api/?name=${pendingEmail.split('@')[0]}&background=3498db&color=fff&size=128`
+        avatar: `https://ui-avatars.com/api/?name=${pendingEmail.split('@')[0]}&background=3b82f6&color=fff&size=128&rounded=true`
       });
       logAction(pendingEmail, 'Đăng nhập', 'Đăng nhập thành công vào Hệ thống cá nhân');
     }
@@ -132,7 +134,6 @@ function App() {
     setUser(null);
     setIsAdmin(false);
     setPendingEmail('');
-    document.documentElement.setAttribute('data-theme', 'light');
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   };
 
@@ -157,50 +158,43 @@ function App() {
 
   if (!user && !isAdmin) {
     return (
-      <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)' }}>
-        <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '400px', padding: '40px 30px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🔐</div>
-          <h2 style={{ marginBottom: '10px', color: 'var(--text-main)', fontSize: '1.5rem' }}>Bảo mật Doanh nghiệp</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '30px', fontSize: '0.9rem' }}>Dữ liệu của bạn được mã hoá chuẩn AES cao cấp nhất</p>
+      <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        <div className="bg-blobs"></div>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} 
+          className="glass-card" style={{ width: '100%', maxWidth: '420px', padding: '40px 32px', textAlign: 'center', position: 'relative', zIndex: 10 }}>
           
-          {!showOTP ? (
-             <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-               <input 
-                 name="email" type="email" required 
-                 placeholder="Nhập địa chỉ Email (VD: admin@gmail.com)" 
-                 className="input-field"
-                 style={{ fontSize: '1rem', padding: '12px' }} 
-               />
-               <input 
-                 name="password" type="password" required 
-                 placeholder="Mật khẩu (123456 hoặc admin)" 
-                 className="input-field"
-                 style={{ fontSize: '1rem', padding: '12px' }} 
-               />
-               <button type="submit" className="btn-primary" style={{ padding: '14px', fontSize: '1rem' }}>
-                 Xác Minh Thông Tin
-               </button>
-             </form>
-          ) : (
-             <form onSubmit={handleOTPVerify} style={{ display: 'flex', flexDirection: 'column', gap: '15px', animation: 'fadeIn 0.3s' }}>
-                <div style={{ padding: '15px', background: 'rgba(52, 152, 219, 0.1)', color: 'var(--accent-blue)', borderRadius: '8px', fontSize: '0.9rem' }}>
-                   Mã OTP 6 số đã được gửi tới thiết bị liên kết của <strong>{pendingEmail}</strong>.
+          <div style={{ background: 'var(--primary)', width: '64px', height: '64px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', color: 'white' }}>
+            <ShieldCheck size={36} />
+          </div>
+          
+          <h2 style={{ marginBottom: '8px', fontSize: '1.75rem' }}>SmartExpense</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '0.95rem' }}>Bảo mật dữ liệu của bạn bằng công nghệ mã hoá chuẩn AES hiện đại nhất.</p>
+          
+          <AnimatePresence mode="wait">
+            {!showOTP ? (
+              <motion.form key="login" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <input name="email" type="email" required placeholder="Địa chỉ Email (VD: admin@gmail.com)" className="input-glass" />
+                <input name="password" type="password" required placeholder="Mật khẩu (Gợi ý: 123456)" className="input-glass" />
+                <button type="submit" className="btn-primary" style={{ marginTop: '8px', width: '100%' }}>
+                  Xác Minh Danh Tính
+                </button>
+              </motion.form>
+            ) : (
+              <motion.form key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleOTPVerify} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ padding: '16px', background: 'var(--primary-bg)', color: 'var(--primary)', borderRadius: '12px', fontSize: '0.9rem', border: '1px solid var(--border-glass)' }}>
+                   Mã OTP 6 số đã được giả lập gửi tới thiết bị liên kết của <strong>{pendingEmail}</strong>.
                 </div>
-                <input 
-                 name="otp" type="text" maxLength="6" required 
-                 placeholder="Nhập mã OTP (Mặc định: 888888)" 
-                 className="input-field"
-                 style={{ fontSize: '1rem', padding: '12px', textAlign: 'center', letterSpacing: '4px', fontWeight: 'bold' }} 
-               />
-               <button type="submit" className="btn-primary" style={{ padding: '14px', fontSize: '1rem', background: 'var(--accent-green)' }}>
-                 Hoàn Tất Đăng Nhập Đa Tầng (2FA)
-               </button>
-               <button type="button" onClick={() => setShowOTP(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', marginTop: '10px', cursor: 'pointer', textDecoration: 'underline' }}>
-                 Quay lại bước trước
-               </button>
-             </form>
-          )}
-        </div>
+                <input name="otp" type="text" maxLength="6" required placeholder="Nhập OTP 888888" className="input-glass" style={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem', fontWeight: 'bold' }} />
+                <button type="submit" className="btn-primary" style={{ width: '100%', background: 'var(--success)' }}>
+                  Hoàn Tất Đăng Nhập Đa Tầng
+                </button>
+                <button type="button" onClick={() => setShowOTP(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', marginTop: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                  ← Quay lại nhập email
+                </button>
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
     );
   }
@@ -219,75 +213,121 @@ function App() {
     }
   };
 
+  const navItems = [
+    { id: 'dashboard', label: 'Tổng Quan', icon: <LayoutDashboard size={20} /> },
+    { id: 'reports', label: 'Báo Cáo & AI', icon: <PieChart size={20} /> },
+    { id: 'debts', label: 'Sổ Nợ (Social)', icon: <Receipt size={20} /> },
+    { id: 'settings', label: 'Cài Đặt Hệ Thống', icon: <SettingsIcon size={20} /> },
+  ];
+
   return (
     <div className="app-container">
-      {/* Sidebar Professional */}
+      <div className="bg-blobs"></div>
+
+      {/* Tái cấu trúc Siêu Sidebar */}
       <aside className="sidebar">
-        <div className="sidebar-logo">
-          <div style={{ background: '#3498db', padding: '6px', borderRadius: '4px', display: 'flex' }}><IconDashboard /></div>
-          <span style={{ fontSize: '1.2rem', fontWeight: '700' }}>SmartFinance</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px', padding: '0 8px' }}>
+          <div style={{ background: 'var(--primary)', padding: '8px', borderRadius: '12px', color: 'white' }}>
+            <Wallet size={24} />
+          </div>
+          <span style={{ fontSize: '1.25rem', fontWeight: '700', letterSpacing: '-0.02em' }}>SmartExpense</span>
         </div>
-        <ul className="sidebar-menu">
-           <li className={`sidebar-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}><IconDashboard /> Tổng Quan</li>
-           <li className="sidebar-item" onClick={() => setShowTransactionForm(true)}><IconExpense /> Quản Lý Chi Tiêu</li>
-           <li className="sidebar-item" onClick={() => setShowGoalForm(true)}><IconGoal /> Mục Tiêu Tiết Kiệm</li>
-           <li className={`sidebar-item ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')}><IconChart /> Phân Tích & Báo Cáo</li>
-           <li className={`sidebar-item ${activeTab === 'debts' ? 'active' : ''}`} onClick={() => setActiveTab('debts')}><IconDebt /> Quản Lý Nợ</li>
-           <li className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}><IconSettings /> Cài Đặt</li>
-        </ul>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+          {navItems.map(item => (
+            <button 
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '12px',
+                background: activeTab === item.id ? 'var(--primary)' : 'transparent',
+                color: activeTab === item.id ? 'white' : 'var(--text-secondary)',
+                border: 'none', fontSize: '15px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s',
+                textAlign: 'left', width: '100%'
+              }}
+            >
+              <span style={{ opacity: activeTab === item.id ? 1 : 0.7 }}>{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="glass-card-transparent" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '12px', marginTop: 'auto' }}>
+          <img src={user.avatar} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '12px' }} />
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{ fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Member</div>
+          </div>
+          <button onClick={handleLogout} className="btn-icon" style={{ borderColor: 'transparent', color: 'var(--danger)' }} title="Đăng xuất">
+            <LogOut size={18} />
+          </button>
+        </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Khu vực Nội dung Chính */}
       <main className="main-content">
-        <header className="topbar">
-          <nav className="topbar-menu">
-            <div className={`topbar-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Trang Chủ</div>
-            <div className={`topbar-item ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')}>Thống Kê</div>
-            <div className={`topbar-item ${activeTab === 'debts' ? 'active' : ''}`} onClick={() => setActiveTab('debts')}>Sổ Nợ</div>
-            <div className={`topbar-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>Cài Đặt</div>
-          </nav>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-             <div onClick={() => setActiveTab('settings')} style={{ background: 'transparent', color: 'var(--text-main)', fontSize: '0.95rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-               <img src={user.avatar} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
-               <span>{user.name} ▼</span>
-             </div>
+        {/* Header Cao Cấp */}
+        <header style={{ 
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+          padding: '24px 40px', background: 'var(--surface-glass)', backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid var(--border-glass)', position: 'sticky', top: 0, zIndex: 40
+        }}>
+          <div>
+             <h1 style={{ fontSize: '1.5rem' }}>
+                {activeTab === 'dashboard' && 'Bảng Điều Khiển Tổng Quan'}
+                {activeTab === 'reports' && 'Khám Phá Phân Tích Dữ Liệu'}
+                {activeTab === 'debts' && 'Trung Tâm Xử Lý Sổ Nợ'}
+                {activeTab === 'settings' && 'Bảo Mật & Tuỳ Chọn Giao Diện'}
+             </h1>
+             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
+                Theo dõi và lập kế hoạch tài chính tối ưu cùng AI.
+             </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+             <button onClick={toggleTheme} className="btn-icon" title="Đổi Phông Màu (Dark/Light)">
+               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+             </button>
+             {activeTab === 'dashboard' && (
+               <>
+                 <button onClick={() => setShowGoalForm(true)} className="btn-icon" style={{ padding: '8px 16px', borderRadius: '12px', fontWeight: '500' }}>
+                   <Target size={18} style={{ marginRight: '8px' }}/> Săn Mục Tiêu
+                 </button>
+                 <button onClick={() => setShowTransactionForm(true)} className="btn-primary">
+                   + Giao Dịch Nhanh
+                 </button>
+               </>
+             )}
           </div>
         </header>
 
-        <div className="page-content animate-fade-in">
-          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
-             <div>
-               <h1 style={{ fontSize: '1.6rem', color: 'var(--text-main)', marginBottom: '5px', transition: 'color 0.3s' }}>
-                 {activeTab === 'dashboard' && 'Quản Lý Chi Tiêu Thu Nhập Tự Động'}
-                 {activeTab === 'reports' && 'Phân Tích Dữ Liệu Chuyên Sâu'}
-                 {activeTab === 'debts' && 'Kiểm Soát Nợ Cá Nhân'}
-                 {activeTab === 'settings' && 'Mã Hóa & Tuỳ Chọn Hệ Thống'}
-               </h1>
-               <p style={{ color: 'var(--text-muted)' }}>Mừng bạn trở lại, <strong>{user.name}</strong>!</p>
-             </div>
-             
-             {activeTab === 'dashboard' && (
-               <div style={{ display: 'flex', gap: '10px' }}>
-                 <button onClick={() => setShowGoalForm(true)} className="btn-primary" style={{ background: 'var(--bg-topbar)', color: 'var(--text-light)' }}>+ Thẻ Mục tiêu</button>
-                 <button onClick={() => setShowTransactionForm(true)} className="btn-primary">+ Thêm Giao Dịch</button>
-               </div>
-             )}
-          </div>
-          {renderContent()}
+        {/* Nội Dung Biến Đổi */}
+        <div style={{ padding: '32px 40px', flex: 1 }}>
+           <AnimatePresence mode="wait">
+             <motion.div 
+               key={activeTab}
+               initial={{ opacity: 0, y: 15 }}
+               animate={{ opacity: 1, y: 0 }}
+               exit={{ opacity: 0, y: -15 }}
+               transition={{ duration: 0.3 }}
+               style={{ height: '100%' }}
+             >
+               {renderContent()}
+             </motion.div>
+           </AnimatePresence>
         </div>
       </main>
 
-      {showTransactionForm && (
-        <TransactionForm onClose={() => setShowTransactionForm(false)} onAdd={handleAddTransaction}/>
-      )}
-
-      {showGoalForm && (
-        <GoalForm onClose={() => setShowGoalForm(false)} onAdd={handleAddGoal}/>
-      )}
+      <AnimatePresence>
+        {showTransactionForm && (
+          <TransactionForm onClose={() => setShowTransactionForm(false)} onAdd={handleAddTransaction}/>
+        )}
+        {showGoalForm && (
+          <GoalForm onClose={() => setShowGoalForm(false)} onAdd={handleAddGoal}/>
+        )}
+      </AnimatePresence>
 
       <AIChatbot transactions={transactions} />
     </div>
   );
 }
-
-export default App;

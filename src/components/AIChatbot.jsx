@@ -1,115 +1,157 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bot, X, Send, Sparkles, MessageSquare } from 'lucide-react';
+import { formatCurrency } from '../utils/format';
 
-export default function AIChatbot({ transactions }) {
+export default function AIChatbot({ transactions, currency = 'VND' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, sender: 'bot', text: 'Chào bạn! Mình là Trợ lý AI. Mình thấu hiểu 100% dòng tiền của bạn. Bạn muốn tra cứu chi tiêu, phân tích danh mục nào hay hỏi về các khoản nợ?' }
+    { role: 'ai', text: 'Chào bạn! Tôi là trợ lý ảo AI SmartExpense. Bạn cần tôi phân tích dữ liệu hay tư vấn tài chính gì hôm nay?' }
   ]);
   const [input, setInput] = useState('');
-  const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isOpen]);
+  const [isTyping, setIsTyping] = useState(false);
 
   const handleSend = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    const userMessage = { id: Date.now(), sender: 'user', text: input };
-    setMessages(prev => [...prev, userMessage]);
+    
+    const userMessage = input.trim();
+    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setInput('');
+    setIsTyping(true);
 
     setTimeout(() => {
-      let replyText = 'Mình chưa rõ ý bạn lắm. Bạn có thể hỏi: "Tổng chi tiêu", "Chi nhiều nhất vào đâu" hoặc "Số dư của tôi" nhé!';
-      const matchText = input.toLowerCase();
+       const lowerInput = userMessage.toLowerCase();
+       let aiReply = 'Xin lỗi, tôi chưa hiểu ý bạn, bạn có thể nói rõ hơn không?';
 
-      // Đảo số liệu mượt mà
-      const totalExpense = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-      const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+       const totalExpense = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+       const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
 
-      if (matchText.includes('nhiều nhất')) {
-         const catMap = {};
-         transactions.filter(t => t.amount < 0).forEach(tx => catMap[tx.category] = (catMap[tx.category] || 0) + Math.abs(tx.amount));
-         const topCat = Object.keys(catMap).length > 0 ? Object.keys(catMap).reduce((a, b) => catMap[a] > catMap[b] ? a : b) : 'Chưa có';
-         replyText = `Dữ liệu hệ thống cảnh báo bạn đang tiêu tốn nhiều tiền nhất vào danh mục "${topCat}" với tổng số tiền là ${catMap[topCat]?.toLocaleString('vi-VN')} đ. Bạn nên tối ưu ngay hạng mục này!`;
-      } else if (matchText.includes('tiết kiệm') || matchText.includes('lời khuyên')) {
-         replyText = `Hiện tại bạn đã xài ${totalExpense.toLocaleString('vi-VN')} đ, thu về ${totalIncome.toLocaleString('vi-VN')} đ. Lời khuyên của mình: Hãy trích 20% thu nhập (${(totalIncome * 0.2).toLocaleString('vi-VN')} đ) nạp thẳng vào thẻ Mục Tiêu để làm vốn, chứ không nên để số dư đóng băng trong tay!`;
-      } else if (matchText.includes('tổng chi') || matchText.includes('tiêu')) {
-         replyText = `Tính đến thời điểm hiện tại, tổng hóa đơn chi tiêu bạn nạp vào hệ thống là ${totalExpense.toLocaleString('vi-VN')} đ.`;
-      } else if (matchText.includes('số dư') || matchText.includes('dư')) {
-         replyText = `Số dư khả dụng của bạn là ${(totalIncome - totalExpense).toLocaleString('vi-VN')} đ theo đối soát thuật toán.`;
-      }
+       if (lowerInput.includes('tổng chi') || lowerInput.includes('tiêu bao nhiêu')) {
+           aiReply = `Tháng này bạn đã tiêu tổng cộng ${formatCurrency(totalExpense, currency)}. Hãy chú ý ngân sách nhé!`;
+       } else if (lowerInput.includes('tổng thu') || lowerInput.includes('kiếm được')) {
+           aiReply = `Bạn đã thu được ${formatCurrency(totalIncome, currency)}. Một con số tuyệt vời!`;
+       } else if (lowerInput.includes('lời khuyên') || lowerInput.includes('tư vấn')) {
+           if (totalExpense > totalIncome * 0.8) {
+               aiReply = 'Cảnh báo Đỏ! Bạn đã tiêu quá 80% thu nhập. Nên ngừng tiệc tùng và chuyển sang ăn mì tôm 🍜.';
+           } else {
+               aiReply = 'Tình hình tài chính của bạn đang rất ổn định. Nhớ trích 20% tháng này vào Quỹ Tiết Kiệm nhé! 💰';
+           }
+       } else if (lowerInput.includes('tiết kiệm') || lowerInput.includes('mục tiêu')) {
+           aiReply = 'Để tiết kiệm hiệu quả, nguyên tắc vàng là: 50% Nhu cầu thiết yếu, 30% Hưởng thụ, 20% Tiết kiệm/Đầu tư.';
+       }
 
-      setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: replyText }]);
-    }, 1200);
+       setMessages(prev => [...prev, { role: 'ai', text: aiReply }]);
+       setIsTyping(false);
+    }, 1500);
   };
 
   return (
     <>
-      <button 
-        onClick={() => setIsOpen(true)}
-        className="btn-primary"
-        style={{
-          position: 'fixed', bottom: '2rem', right: '2rem',
-          width: '64px', height: '64px', borderRadius: '50%',
-          display: isOpen ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 8px 32px var(--accent-blue)', zIndex: 9999, padding: 0,
-          background: 'linear-gradient(135deg, #3498db, #2980b9)', border: 'none'
-        }}
-      >
-        <span style={{ fontSize: '2rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>🤖</span>
-      </button>
-
-      {isOpen && (
-        <div className="card animate-fade-in" style={{
-          position: 'fixed', bottom: '2rem', right: '2rem',
-          width: '380px', height: '550px', display: 'flex', flexDirection: 'column',
-          zIndex: 9999, boxShadow: '0 12px 48px rgba(0,0,0,0.5)', padding: 0, overflow: 'hidden'
-        }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-topbar)', color: 'white' }}>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '1.1rem', fontWeight: '600' }}>
-              <span style={{ fontSize: '1.4rem' }}>✨</span> AI Analytics Bot
-            </h3>
-            <button onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.4rem', opacity: 0.8 }}>✕</button>
-          </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--bg-main)' }}>
-            {messages.map(msg => (
-              <div key={msg.id} style={{ display: 'flex', justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{
-                  maxWidth: '85%', padding: '12px 16px', borderRadius: msg.sender === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  background: msg.sender === 'user' ? 'var(--accent-blue)' : 'var(--bg-card)',
-                  color: msg.sender === 'user' ? 'white' : 'var(--text-main)', 
-                  border: msg.sender === 'bot' ? '1px solid var(--border-color)' : 'none',
-                  fontSize: '0.95rem', lineHeight: '1.5', boxShadow: 'var(--shadow-sm)'
-                }}>
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
-          <form onSubmit={handleSend} style={{ padding: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '10px', background: 'var(--bg-card)' }}>
-            <input 
-              type="text" 
-              value={input} 
-              onChange={e => setInput(e.target.value)}
-              className="input-field"
-              placeholder="Hỏi AI về Ví tiền của bạn..."
-              style={{ padding: '10px 16px', fontSize: '0.95rem', flex: 1, borderRadius: '24px' }}
-            />
-            <button type="submit" className="btn-primary" style={{ padding: '0', width: '42px', height: '42px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span>➤</span>
+      {/* Nút Gọi AI Điểm Nhấn */}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            style={{ position: 'fixed', bottom: '32px', right: '32px', zIndex: 90 }}
+          >
+            <button 
+              onClick={() => setIsOpen(true)}
+              style={{
+                width: '64px', height: '64px', borderRadius: '32px', border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)', color: 'white',
+                boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <Bot size={32} />
+              <div style={{ position: 'absolute', top: 0, right: 0, width: 14, height: 14, borderRadius: '50%', background: 'var(--danger)', border: '2px solid var(--bg-app)' }}></div>
             </button>
-          </form>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cửa Sổ Chatbot Glassmorphism */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="glass-card"
+            style={{ position: 'fixed', bottom: '32px', right: '32px', width: '380px', height: '600px', display: 'flex', flexDirection: 'column', zIndex: 100, overflow: 'hidden' }}
+          >
+            {/* Header AI Chat */}
+            <div style={{ padding: '20px 24px', background: 'var(--primary-bg)', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                 <div style={{ background: 'var(--primary)', padding: '10px', borderRadius: '14px', color: 'white' }}>
+                   <Sparkles size={20} />
+                 </div>
+                 <div>
+                   <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', margin: 0 }}>Smart Assistant AI</h3>
+                   <span style={{ fontSize: '12px', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                     <span style={{ width: 6, height: 6, background: 'var(--success)', borderRadius: '50%' }}></span> Online
+                   </span>
+                 </div>
+              </div>
+              <button onClick={() => setIsOpen(false)} className="btn-icon" style={{ border: 'none' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Khung Chat Chính */}
+            <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {messages.map((msg, idx) => (
+                <motion.div 
+                  key={idx} 
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}
+                >
+                  <div style={{ 
+                    maxWidth: '85%', padding: '12px 16px', borderRadius: '16px', fontSize: '14px', lineHeight: 1.5,
+                    background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)' : 'var(--surface-opaque)',
+                    color: msg.role === 'user' ? 'white' : 'var(--text-primary)',
+                    border: msg.role === 'user' ? 'none' : '1px solid var(--border-glass)',
+                    borderBottomRightRadius: msg.role === 'user' ? '4px' : '16px',
+                    borderBottomLeftRadius: msg.role === 'ai' ? '4px' : '16px',
+                  }}>
+                    {msg.text}
+                  </div>
+                </motion.div>
+              ))}
+
+              {isTyping && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', gap: '8px', padding: '12px 16px', background: 'var(--surface-opaque)', borderRadius: '16px', borderBottomLeftRadius: '4px', maxWidth: '80px', border: '1px solid var(--border-glass)' }}>
+                   <span style={{ width: 6, height: 6, background: 'var(--text-muted)', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both' }}></span>
+                   <span style={{ width: 6, height: 6, background: 'var(--text-muted)', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.2s' }}></span>
+                   <span style={{ width: 6, height: 6, background: 'var(--text-muted)', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.4s' }}></span>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Input Gửi Tin Nhắn */}
+            <form onSubmit={handleSend} style={{ padding: '16px', borderTop: '1px solid var(--border-glass)', background: 'var(--surface-glass)', backdropFilter: 'blur(20px)' }}>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  value={input} 
+                  onChange={(e) => setInput(e.target.value)} 
+                  placeholder="Hỏi AI bất cứ điều gì..." 
+                  className="input-glass"
+                  style={{ paddingRight: '48px', borderRadius: '24px' }} 
+                />
+                <button type="submit" style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'var(--primary)', color: 'white', border: 'none', width: '36px', height: '36px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(-50%) scale(1)'}>
+                  <Send size={16} />
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

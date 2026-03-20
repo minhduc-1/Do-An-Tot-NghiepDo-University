@@ -1,115 +1,112 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Papa from 'papaparse';
+import { motion } from 'framer-motion';
 import { saveData, loadData } from '../services/StorageService';
 import { logAction } from '../services/AuditService';
+import { DownloadCloud, UploadCloud, Coins, ShieldAlert } from 'lucide-react';
 
 export default function Settings({ user, onLogout, currency, setCurrency }) {
-  const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') || 'light');
-  
-  const handleThemeChange = (e) => {
-    const newTheme = e.target.value;
-    setTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-  };
+  const [msg, setMsg] = useState('');
 
-  const handleExportData = () => {
+  const exportCSV = () => {
     const tx = loadData('tx_data', []);
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tx));
-    const anchor = document.createElement('a');
-    anchor.setAttribute("href", dataStr);
-    anchor.setAttribute("download", "smart_finance_backup.json");
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    logAction(user?.email, 'Backup/Restore', 'Xuất file mã hoá hệ thống (JSON)');
+    if(tx.length === 0) return alert('Không có dữ liệu để xuất!');
+    const csv = Papa.unparse(tx);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `smartexpense_backup_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+    logAction(user?.email, 'Export CSV', 'Người dùng tải Backup Dữ liệu Giao dịch xuống máy');
   };
 
-  const handleImportCSV = (e) => {
+  const importCSV = (e) => {
     const file = e.target.files[0];
     if(!file) return;
-    
-    if(file.name.endsWith('.json')) {
-       const reader = new FileReader();
-       reader.onload = (e) => {
-          try {
-             const data = JSON.parse(e.target.result);
-             if (Array.isArray(data)) {
-                 saveData('tx_data', data);
-                 logAction(user?.email, 'Backup/Restore', 'Hoàn tất Khôi phục hệ thống qua JSON Backup');
-                 alert('Khôi phục hệ thống JSON thành công! Vui lòng làm mới (F5) trang.');
-                 window.location.reload();
-             } else alert('Cấu trúc file JSON hỏng');
-          } catch(err) { alert('File JSON không hợp lệ'); }
-       };
-       reader.readAsText(file);
-    } else if (file.name.endsWith('.csv')) {
-       Papa.parse(file, {
-          header: true,
-          complete: function(results) {
-             const transactions = loadData('tx_data', []);
-             const newTxs = results.data.map(row => ({
-                id: Date.now() + Math.random(),
-                date: row.date || new Date().toLocaleDateString('vi-VN'),
-                category: row.category || 'Khởi Tạo CSV',
-                amount: Number(row.amount) || Number(row.Amount) || parseInt(row.Sotien) || 0,
-                note: row.note || row.ghi_chu || row.Note || 'Imported từ CSV'
-             })).filter(tx => tx.amount !== 0);
-             saveData('tx_data', [...newTxs, ...transactions]);
-             logAction(user?.email, 'Backup/Restore', `Import Database thành công ${newTxs.length} dòng qua CSV`);
-             alert(`Bơm thành công ${newTxs.length} dòng dữ liệu từ CSV! Vui lòng nhấn OK để tải lại.`);
-             window.location.reload();
-          }
-       });
-    } else {
-       alert('Định dạng không được hỗ trợ. Vui lòng chọn JSON hoặc CSV');
-    }
+    Papa.parse(file, {
+      header: true,
+      complete: (results) => {
+        saveData('tx_data', results.data);
+        logAction(user?.email, 'Import CSV', `Người dùng nạp ${results.data.length} dòng dữ liệu từ CSV`);
+        setMsg('Nhập bộ nhớ thành công! Xin hãy làm mới (F5) trang web.');
+      }
+    });
+  };
+
+  const exportJSON = () => {
+    const backup = {
+      transactions: loadData('tx_data', []),
+      goals: loadData('goals_data', []),
+      audit_logs: loadData('audit_logs', [])
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'smart_expense_full_backup.json';
+    link.click();
+    logAction(user?.email, 'Export JSON Full', 'Tạo điểm ảnh hệ thống JSON (Full Dump)');
   };
 
   return (
-    <div className="card animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto', padding: '30px' }}>
-      <h2 className="card-title" style={{ fontSize: '1.4rem', borderBottom: 'none', marginBottom: '20px' }}>Cài Đặt Hệ Thống</h2>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(300px, 1fr)', gap: '24px' }}>
       
-      <div style={{ marginBottom: '30px', padding: '20px', background: 'var(--bg-main)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <img src={user?.avatar || 'https://ui-avatars.com/api/?name=Admin'} alt="Avatar" style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover' }} />
-        <div>
-          <h3 style={{ fontSize: '1.2rem', margin: '0 0 5px 0' }}>{user?.name || 'Giám Đốc Hệ Thống'}</h3>
-          <p style={{ color: 'var(--text-muted)', margin: 0 }}>{user?.email || 'admin@gmail.com'}</p>
+      {/* Trung tâm Định dạng Tiền Tệ */}
+      <div className="glass-card" style={{ padding: '24px' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+           <Coins size={20} color="var(--warning)" /> Định Dạng Tiền Tệ Tỷ Giá
+        </h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '16px' }}>Hệ thống tự động quy đổi ngoại tệ (Mô phỏng)</p>
+        
+        <select 
+          value={currency} 
+          onChange={(e) => {
+             setCurrency(e.target.value);
+             logAction(user?.email, 'Đổi Tiền tệ', `Chuyển đơn vị hiển thị sang ${e.target.value}`);
+          }} 
+          className="input-glass"
+          style={{ width: '100%', appearance: 'none', background: 'var(--surface-opaque)' }}
+        >
+          <option value="VND">Tiền Việt (VNĐ)</option>
+          <option value="USD">Dollar Mỹ (USD $)</option>
+          <option value="EUR">Euro Châu Âu (EUR €)</option>
+          <option value="JPY">Yên Nhật (JPY ¥)</option>
+        </select>
+      </div>
+
+      {/* Trung Tâm Dữ Liệu Lõi */}
+      <div className="glass-card" style={{ padding: '24px' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+           <ShieldAlert size={20} color="var(--primary)" /> An Toàn Dữ Liệu Cục Bộ (AES Backup)
+        </h3>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+           <button onClick={exportCSV} className="btn-primary" style={{ background: 'var(--surface-opaque)', color: 'var(--text-primary)', border: '1px solid var(--border-glass)' }}>
+             <DownloadCloud size={18} /> Kết Xuất CSV Cơ Bản
+           </button>
+           
+           <button onClick={exportJSON} className="btn-primary" style={{ background: 'var(--primary)', color: 'white' }}>
+             <DownloadCloud size={18} /> Chụp Thể Block Hệ Thống (JSON Full)
+           </button>
+
+           <div style={{ position: 'relative' }}>
+             <label className="btn-primary" style={{ background: 'var(--success)', color: 'white', cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'center' }}>
+               <UploadCloud size={18} /> Ghi Đè Database Cũ (Import CSV)
+               <input type="file" accept=".csv" onChange={importCSV} style={{ display: 'none' }} />
+             </label>
+           </div>
+           
+           {msg && <p style={{ color: 'var(--success)', fontSize: '14px', textAlign: 'center', margin: 0 }}>{msg}</p>}
         </div>
       </div>
-
-      <div style={{ marginBottom: '20px' }}>
-         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Giao Diện Màu Chữ Thể Hiện</label>
-         <select className="input-field" value={theme} onChange={handleThemeChange}>
-            <option value="light">☀️ Giao diện Sáng tinh tế (Mặc định)</option>
-            <option value="dark">🌙 Chế độ Nghệ Thuật Đen (Dark Mode)</option>
-         </select>
-      </div>
-
-      <div style={{ marginBottom: '30px' }}>
-         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Tâm Điểm Ngoại Tệ So Sánh Toàn Cầu</label>
-         <select className="input-field" value={currency} onChange={e => setCurrency(e.target.value)}>
-            <option value="VND">Tiền Việt Nam (VNĐ)</option>
-            <option value="USD">Quy đổi sang Đô La Mỹ ($ USD)</option>
-         </select>
-      </div>
-
-      <div style={{ padding: '20px', background: 'rgba(52, 152, 219, 0.05)', border: '1px solid var(--border-color)', borderRadius: '8px', marginBottom: '30px' }}>
-         <h3 style={{ margin: '0 0 15px 0', fontSize: '1.1rem' }}>Bảo Vệ Sao Lưu & Phục Hồi Dữ Liệu</h3>
-         <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
-            <button onClick={handleExportData} className="btn-primary" style={{ background: '#3498db' }}>⬇️ Trích xuất Lõi Dữ liệu (Backup JSON)</button>
-            <label className="btn-primary" style={{ background: '#2ecc71', cursor: 'pointer', textAlign: 'center' }}>
-               ⬆️ Bơm Dữ Liệu Hàng Loạt (Upload .CSV hoặc .JSON)
-               <input type="file" accept=".csv, .json" style={{ display: 'none' }} onChange={handleImportCSV} />
-            </label>
-         </div>
-         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '10px' }}>*Quá trình Import CSV yêu cầu cột Cấu trúc chứa trường `amount`, `category`, `date`, `note`.</p>
-      </div>
-
-      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-         <button onClick={onLogout} className="btn-primary" style={{ background: 'var(--accent-red)', width: '100%', fontSize: '1rem', padding: '12px' }}>
-            Đăng Xuất Quyền Truy Cập Phiên
+      
+      <div className="glass-card" style={{ padding: '24px', gridColumn: '1 / -1', border: '1px solid var(--danger)', background: 'var(--danger-bg)' }}>
+         <h3 style={{ color: 'var(--danger)', marginBottom: '16px' }}>Khu Vực Nguy Hiểm (Vùng Trắng)</h3>
+         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>Toàn bộ thiết lập, số lượng mục tiêu và lịch sử hoạt động sẽ bị xoá khỏi LocalStorage cục bộ nếu bạn Đăng xuất khỏi phân vùng này.</p>
+         <button onClick={onLogout} className="btn-primary" style={{ background: 'var(--danger)', color: 'white' }}>
+            Huỷ Kết Nối & Thoát Hoàn Toàn 
          </button>
       </div>
-    </div>
+
+    </motion.div>
   );
 }

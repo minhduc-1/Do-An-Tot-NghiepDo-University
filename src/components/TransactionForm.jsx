@@ -1,138 +1,165 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Sparkles, Send, Tags } from 'lucide-react';
 import Tesseract from 'tesseract.js';
 
 export default function TransactionForm({ onClose, onAdd }) {
-  const [formData, setFormData] = useState({ 
-     date: new Date().toISOString().split('T')[0], 
-     category: 'Ăn uống', 
-     amount: '', 
-     note: '', 
-     emotion: 'Thường' 
-  });
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
+  const [smartInput, setSmartInput] = useState('');
+  const [parsedData, setParsedData] = useState({ category: 'Khác', amount: '', note: '' });
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [useAI, setUseAI] = useState(false); // Toggle scan receipt
+  
+  // AI Simulation: Tự động Bóc tách chuỗi (VD: "Uống trà đá 15k" => 15000)
+  useEffect(() => {
+    if (!smartInput) {
+      setParsedData({ category: 'Khác', amount: '', note: '' });
+      return;
+    }
+    
+    let noteStr = smartInput;
+    let amountVal = '';
+    
+    // Tìm con số (có thể có k, m phía sau)
+    const match = smartInput.match(/(\d+)(k|m|tr|ngàn|nghin)?/i);
+    if (match) {
+       let num = parseInt(match[1]);
+       const suffix = match[2]?.toLowerCase();
+       if (suffix === 'k' || suffix === 'ngàn' || suffix === 'nghin') num *= 1000;
+       if (suffix === 'm' || suffix === 'tr') num *= 1000000;
+       amountVal = num;
+       noteStr = smartInput.replace(match[0], '').trim();
+    }
+    
+    // Gợi ý danh mục từ Note
+    const txt = noteStr.toLowerCase();
+    let cat = 'Khác';
+    if (txt.includes('ăn') || txt.includes('uống') || txt.includes('phở') || txt.includes('cafe') || txt.includes('trà')) cat = 'Ăn uống';
+    else if (txt.includes('đi') || txt.includes('xăng') || txt.includes('grab')) cat = 'Di chuyển';
+    else if (txt.includes('điện') || txt.includes('nước') || txt.includes('nhà')) cat = 'Sinh hoạt';
+    else if (txt.includes('lương') || txt.includes('thưởng')) cat = 'Lương/Thưởng';
+    else if (txt.includes('sắm') || txt.includes('đồ') || txt.includes('quần áo')) cat = 'Mua sắm';
 
-  const categories = ['Ăn uống', 'Di chuyển', 'Mua sắm', 'Hóa đơn', 'Giải trí', 'Lương', 'Thu nhập khác'];
-  const emotions = [
-     { label: 'Vui vẻ', emoji: '😄' },
-     { label: 'Thường', emoji: '😐' },
-     { label: 'Buồn chán', emoji: '😢' },
-     { label: 'Tức giận', emoji: '😡' }
-  ];
-
-  const handleImageOCR = (e) => {
-     const file = e.target.files[0];
-     if(!file) return;
-     setIsScanning(true);
-     setScanProgress(0);
-     Tesseract.recognize(file, 'vie+eng', { 
-        logger: m => { if(m.status === 'recognizing text') setScanProgress(Math.round(m.progress * 100)); } 
-     }).then(({ data: { text } }) => {
-        setIsScanning(false);
-        const matches = text.match(/\d+([\.,]\d+)*/g);
-        if (matches && matches.length > 0) {
-           const nums = matches.map(s => parseFloat(s.replace(/,/g, '').replace(/\./g, ''))).filter(n => !isNaN(n));
-           const maxNum = Math.max(...nums);
-           if (maxNum > 0) {
-              setFormData(prev => ({ ...prev, amount: maxNum }));
-              alert(`🤖 Trí tuệ AI nhận diện được con số Lớn Nhất trên Hoá đơn: ${maxNum} đ`);
-           }
-        } else alert('🤖 AI Không phân tích được ký tự số nào rõ ràng trên ảnh.');
-     }).catch(() => {
-        setIsScanning(false);
-        alert('Lỗi khởi tạo Neural OCR.');
-     });
-  };
-
-  const handleCategoryChange = (e) => {
-     const cat = e.target.value;
-     let suggestedNote = '';
-     if (cat === 'Ăn uống') suggestedNote = 'Bữa ăn ngoài';
-     if (cat === 'Di chuyển') suggestedNote = 'Đổ xăng / Gọi xe';
-     if (cat === 'Hóa đơn') suggestedNote = 'Thanh toán hoá đơn dịch vụ';
-     if (cat === 'Lương') suggestedNote = 'Lương tháng định kì';
-
-     setFormData(prev => ({ ...prev, category: cat, note: prev.note || suggestedNote }));
-  };
+    setParsedData({ category: cat, amount: amountVal, note: noteStr || 'Giao dịch nhanh' });
+  }, [smartInput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.amount || isNaN(formData.amount)) return;
+    if (!parsedData.amount) {
+      alert('Vui lòng nhập rõ số tiền (VD: Ăn bún đậu 35k)');
+      return;
+    }
     
-    let isIncome = (formData.category === 'Lương' || formData.category === 'Thu nhập khác');
-    const finalAmount = isIncome ? Math.abs(Number(formData.amount)) : -Math.abs(Number(formData.amount));
+    // Thu hay Chi? (Thu: Lương/Thưởng, Bán hàng)
+    const isIncome = parsedData.category === 'Lương/Thưởng' || parsedData.note.toLowerCase().includes('lương');
+    const finalAmount = isIncome ? Math.abs(parsedData.amount) : -Math.abs(parsedData.amount);
 
     onAdd({
       id: Date.now().toString(),
-      ...formData,
-      amount: finalAmount
+      date: new Date().toISOString().split('T')[0],
+      category: parsedData.category,
+      amount: finalAmount,
+      note: parsedData.note || 'Thu chi tự động'
     });
     onClose();
   };
 
+  const handleImageOCR = async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    setIsAiProcessing(true);
+    try {
+       const result = await Tesseract.recognize(file, 'vie');
+       const text = result.data.text;
+       // Tìm số to nhất làm tổng tiền
+       const numbers = text.match(/\d+(?:[.,]\d+)?/g);
+       if (numbers) {
+         const max = Math.max(...numbers.map(n => parseInt(n.replace(/\D/g, ''))));
+         if (max > 1000) setSmartInput(`Thanh toán ảnh chụp ${max}`);
+         else alert('AI không tìm thấy số tiền hợp lệ trên hoá đơn này!');
+       }
+    } catch(err) {
+       console.error("Lỗi AI OCR", err);
+    }
+    setIsAiProcessing(false);
+  };
+
   return (
-    <div className="modal-backdrop animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
-      <div className="card" style={{ width: '100%', maxWidth: '400px', margin: '20px', maxHeight: '95vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <h3 style={{ margin: 0, color: 'var(--text-main)' }}>Khai Báo Giao Dịch</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
-        </div>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <motion.div 
+        initial={{ y: 50, opacity: 0, scale: 0.95 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: 20, opacity: 0, scale: 0.95 }}
+        className="glass-card" 
+        style={{ width: '100%', maxWidth: '500px', padding: '32px', position: 'relative' }}
+      >
+        <button onClick={onClose} className="btn-icon" style={{ position: 'absolute', top: '16px', right: '16px', border: 'none' }}>
+           <X size={20} />
+        </button>
 
-        <div style={{ padding: '15px', background: 'rgba(52, 152, 219, 0.05)', borderRadius: '8px', border: '1px dashed #3498db', marginBottom: '20px', textAlign: 'center' }}>
-           <h4 style={{ margin: '0 0 10px 0', color: '#3498db', fontSize: '0.9rem' }}>🤖 Máy Quét Hoá Đơn AI (OCR)</h4>
-           {isScanning ? (
-              <div>
-                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '5px' }}>Trí tuệ Nhân tạo đang phân tích chữ viết trên ảnh ({scanProgress}%)...</div>
-                 <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px' }}>
-                    <div style={{ width: `${scanProgress}%`, height: '100%', background: '#3498db', transition: 'width 0.2s' }}></div>
-                 </div>
-              </div>
-           ) : (
-              <label style={{ cursor: 'pointer', color: '#3498db', fontSize: '0.85rem', fontWeight: '500', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                 📷 Tải lên Biên Lai Hoá đơn
-                 <input type="file" accept="image/*" onChange={handleImageOCR} style={{ display: 'none' }} />
-              </label>
-           )}
-        </div>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sparkles color="var(--primary)" size={24}/> Ghi Chép Thông Minh
+        </h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '24px' }}>
+          Chỉ cần gõ theo thói quen tự nhiên. AI sẽ tự động phân loại. <br/> 
+          <i>Ví dụ: "Ăn bít tết 250k" hoặc "Mẹ gửi 5tr"</i>
+        </p>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem' }}>Tính Trạng Cảm Xúc Lúc Mua Hàng</label>
-            <div style={{ display: 'flex', gap: '10px' }}>
-               {emotions.map(emo => (
-                  <div key={emo.label} onClick={() => setFormData({...formData, emotion: emo.label})}
-                       style={{ flex: 1, textAlign: 'center', padding: '10px', background: formData.emotion === emo.label ? 'rgba(52, 152, 219, 0.2)' : 'var(--bg-main)', border: formData.emotion === emo.label ? '2px solid #3498db' : '2px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontSize: '1.5rem', transition: 'all 0.2s' }}>
-                     {emo.emoji}
-                  </div>
-               ))}
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem' }}>Ngày Ghi Sổ</label>
-            <input type="date" className="input-field" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required/>
-          </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem' }}>Nhóm Phân Loại Báo Cáo</label>
-            <select className="input-field" value={formData.category} onChange={handleCategoryChange}>
-              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
+          <div style={{ position: 'relative' }}>
+             <input
+                type="text"
+                autoFocus
+                className="input-glass"
+                placeholder="Nhấn gõ Giao dịch của bạn..."
+                style={{ fontSize: '1.2rem', padding: '16px 20px', borderRadius: '16px' }}
+                value={smartInput}
+                onChange={(e) => setSmartInput(e.target.value)}
+             />
+             <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'var(--primary-bg)', color: 'var(--primary)', padding: '6px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
+                AI Gợi ý
+             </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem' }}>Số Tiền Khai Báo Thực Tế (VNĐ)</label>
-            <input type="number" className="input-field" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} placeholder="0 đ" required/>
+          <AnimatePresence>
+            {smartInput && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }} 
+                animate={{ opacity: 1, height: 'auto' }} 
+                exit={{ opacity: 0, height: 0 }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div style={{ background: 'var(--surface-opaque)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border-glass)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Loại danh mục</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      <Tags size={16} color="var(--accent)" /> {parsedData.category}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tính toán Vốn</label>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: parsedData.amount ? 'var(--primary)' : 'var(--text-muted)' }}>
+                      {parsedData.amount ? `${parsedData.amount.toLocaleString()} đ` : 'Chưa rõ số tiền'}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Công cụ quét Hoá đơn nâng cao */}
+          <div style={{ padding: '16px', background: 'var(--warning-bg)', borderRadius: '12px', border: '1px dashed var(--warning)' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer', color: 'var(--warning)' }}>
+               {isAiProcessing ? '🤖 Nơ-ron xử lý thần kinh đang nảy số...' : '📸 Hoặc Tải ảnh Chụp Hoá Đơn / Bill tính tiền để AI quét (BETA)'}
+               <input type="file" accept="image/*" onChange={handleImageOCR} disabled={isAiProcessing} style={{ display: 'none' }} />
+            </label>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem' }}>Diễn Giải Bổ Sung (Auto-suggest)</label>
-            <input type="text" className="input-field" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} placeholder="Bạn đã mua gì..."/>
-          </div>
-
-          <button type="submit" className="btn-primary" style={{ marginTop: '10px' }}>Lưu Hồ Sơ</button>
+          <button type="submit" className="btn-primary" style={{ padding: '16px', borderRadius: '16px', fontSize: '16px' }} disabled={!parsedData.amount}>
+            <Send size={20} /> Lưu Giao Dịch
+          </button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }

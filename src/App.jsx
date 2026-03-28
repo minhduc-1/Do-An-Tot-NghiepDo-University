@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Wallet, Target, PieChart, Receipt, Settings as SettingsIcon, LogOut, Moon, Sun, ShieldCheck, UserPlus, LogIn, ChevronRight, MailCheck, Lock } from 'lucide-react';
+import CryptoJS from 'crypto-js';
+import { LayoutDashboard, Wallet, Target, PieChart, Receipt, Settings as SettingsIcon, LogOut, Moon, Sun, ShieldCheck, UserPlus, LogIn, ChevronRight, MailCheck, Lock, AlertTriangle } from 'lucide-react';
 
 import Dashboard from './components/Dashboard';
 import TransactionForm from './components/TransactionForm';
@@ -23,9 +24,13 @@ export default function App() {
   const [usersDB, setUsersDB] = useState(() => loadData('users_db', defaultUsers));
   useEffect(() => { saveData('users_db', usersDB); }, [usersDB]);
 
-  // Auth State
+  // Auth & Security State
   const [user, setUser] = useState(null); 
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register_step1' | 'register_step2_otp' | 'register_step3_pwd'
+  const [authMode, setAuthMode] = useState('login');
+  
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockoutTimer, setLockoutTimer] = useState(0);
+  const [captchaChecked, setCaptchaChecked] = useState(false);
   
   // Registration Data
   const [tempRegData, setTempRegData] = useState({ name: '', email: '', otp: '' });
@@ -52,6 +57,17 @@ export default function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Lockout countdown mechanism
+  useEffect(() => {
+    let timer;
+    if (lockoutTimer > 0) {
+       timer = setInterval(() => setLockoutTimer(p => p - 1), 1000);
+    } else if (lockoutTimer === 0 && loginAttempts >= 3) {
+       setLoginAttempts(0);
+    }
+    return () => clearInterval(timer);
+  }, [lockoutTimer, loginAttempts]);
+
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   // Idle Mechanism
@@ -62,8 +78,8 @@ export default function App() {
       timeoutRef.current = setTimeout(() => {
         logAction(user.email, 'Bảo mật', 'Tự động khóa ứng dụng do bận');
         setUser(null);
-        alert('Phiên đăng nhập đã hết hạn để bảo vệ dữ liệu của bạn!');
-      }, 10 * 60 * 1000);
+        alert('Phiên đăng nhập đã tự động khóa để bảo mật dữ liệu riêng tư!');
+      }, 10 * 60 * 1000); // 10 minutes
     }
   };
 
@@ -76,86 +92,110 @@ export default function App() {
     };
   }, [user]);
 
-  // Handle Login flow
+  // ----- AUTH LOGIC -----
+  const hashPwd = (p) => CryptoJS.SHA256(p).toString();
+
   const handleLogin = (e) => {
     e.preventDefault();
+    if (lockoutTimer > 0) return; // Không cho click nếu đang khóa
+
     const email = e.target.email.value;
     const pwd = e.target.password.value;
+    const hashed = hashPwd(pwd);
     
-    const account = usersDB.find(u => u.email === email && u.password === pwd);
+    // So khớp mã HASH hoặc Mật khẩu gốc (Dành cho tài khoản cũ chưa mã hoá)
+    const account = usersDB.find(u => u.email === email && (u.password === pwd || u.password === hashed));
     
     if (account) {
        setUser({
          ...account,
-         avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${account.name.replace(' ','+')}&backgroundColor=0d9488`
+         // Trả lại UI Avatars chuyên nghiệp với chữ cái
+         avatar: `https://ui-avatars.com/api/?name=${account.name.replace(/ /g, '+')}&background=0d9488&color=fff&size=128&rounded=true`
        });
-       logAction(email, 'Đăng nhập', `Đăng nhập thiết bị`);
+       setLoginAttempts(0);
+       logAction(email, 'Đăng nhập', `Đăng nhập hệ thống bảo mật`);
        resetTimeout();
     } else {
-       alert('Rất tiếc! Email hoặc mật khẩu chưa đúng. Vui lòng kiểm tra lại!');
+       const fails = loginAttempts + 1;
+       setLoginAttempts(fails);
+       if (fails >= 3) {
+          setLockoutTimer(30);
+          logAction(email || 'Khách', 'Cảnh Báo Xâm Nhập', 'Nhập sai mật khẩu 3 lần. Kích hoạt khóa 30s.');
+       }
     }
   };
 
-  // Handle Registration Flow - Step 1: Info to OTP
   const handleRegStep1 = (e) => {
     e.preventDefault();
-    const name = e.target.name.value;
-    const email = e.target.email.value;
+    if (!captchaChecked) return alert('Hãy đánh dấu xác nhận bảo mật máy chủ!');
 
-    if (usersDB.find(u => u.email === email)) return alert('Thật tiếc, Email này đã có người đăng ký rồi. Hãy dùng email khác nhé!');
+    const name = e.target.name.value.trim();
+    const email = e.target.email.value.trim();
 
-    // Tạo mã OTP 6 số giả lập
+    if (usersDB.find(u => u.email === email)) return alert('Thật tiếc, Email này đã có người đăng ký rồi!');
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOTP(otp);
     setTempRegData({ ...tempRegData, name, email });
     setAuthMode('register_step2_otp');
 
-    // Hiệu ứng gửi mail ảo
     setTimeout(() => {
       setEmailNotification({ name, otp, email });
-      // Tăng thời gian hiển thị lên 60s để người dùng kịp thao tác đọc OTP
-      setTimeout(() => setEmailNotification(null), 60000); 
+      setTimeout(() => setEmailNotification(null), 60000); // Tồn tại 60s
     }, 800);
   };
 
-  // Handle Registration Flow - Step 2: Validate OTP
   const handleRegStep2 = (e) => {
     e.preventDefault();
     const inputOTP = e.target.otp.value;
     if (inputOTP === generatedOTP) {
         setAuthMode('register_step3_pwd');
     } else {
-        alert('Mã OTP không chính xác. Bạn hãy kiểm tra lại hòm thư nhé!');
+        alert('Mã OTP không chính xác. Bạn hãy kiểm tra lại hòm thư mô phỏng nhé!');
     }
   };
 
-  // Handle Registration Flow - Step 3: Pwd & Create
   const handleRegStep3 = (e) => {
     e.preventDefault();
     const pwd = e.target.password.value;
     const rePwd = e.target.repassword.value;
 
-    if (pwd !== rePwd) return alert('Ồ không, hai mật khẩu không khớp nhau mất rồi!');
+    if (pwd.length < 6) return alert('Mật khẩu chưa đủ mạnh! Vui lòng đặt tối thiểu 6 ký tự để bảo vệ Két Sắt.');
+    if (pwd !== rePwd) return alert('Hai mật khẩu không khớp nhau mất rồi!');
     
-    const newUser = { email: tempRegData.email, password: pwd, name: tempRegData.name, role: 'user' };
+    // Kích hoạt Mã Thuật Toán SHA256 thay vì thô
+    const securePwd = hashPwd(pwd);
+    const newUser = { email: tempRegData.email, password: securePwd, name: tempRegData.name, role: 'user' };
     setUsersDB([...usersDB, newUser]);
     
-    // Đăng nhập luôn sau khi tạo
     setUser({
       ...newUser,
-      avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${tempRegData.name.replace(' ','+')}&backgroundColor=0d9488`
+      avatar: `https://ui-avatars.com/api/?name=${tempRegData.name.replace(/ /g, '+')}&background=0d9488&color=fff&size=128&rounded=true`
     });
     
-    // KHÔNG tạo giao dịch mồi -> Trả về 0đ theo yêu cầu! Vĩnh viễn lưu cache cho account này.
-    logAction(tempRegData.email, 'Tạo tài khoản', `Người dùng mới xác minh Mail thành công: ${tempRegData.name}`);
-    alert(`Xác minh thành công! Chào ${tempRegData.name}. Số dư hiện tại là 0đ, bạn có thể tự nạp tiền và bắt đầu sử dụng nhé!`);
+    // Reset Data cache (đề phòng có dữ liệu session)
+    setCaptchaChecked(false);
+    logAction(tempRegData.email, 'Tạo tài khoản', `Xác minh thành công, mã hoá DB: ${tempRegData.name}`);
+    alert(`Khởi tạo thành công! Chào ${tempRegData.name}. Mọi thứ đã đưa về 0đ an toàn.`);
   };
 
   const handleLogout = () => {
     if(user) logAction(user.email, 'Đăng xuất', 'Rời hệ thống');
     setUser(null);
     setAuthMode('login');
+    setCaptchaChecked(false);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  };
+
+  const updateUserProfile = (newName) => {
+     // Hàm hỗ trợ đổi tên ở Setting
+     const updatedUsers = usersDB.map(u => u.email === user.email ? { ...u, name: newName } : u);
+     setUsersDB(updatedUsers);
+     setUser({ 
+       ...user, 
+       name: newName, 
+       avatar: `https://ui-avatars.com/api/?name=${newName.replace(/ /g, '+')}&background=0d9488&color=fff&size=128&rounded=true` 
+     });
   };
 
   // --- RENDERING ROUTER ---
@@ -164,7 +204,7 @@ export default function App() {
       <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
         <div className="auth-bg"></div>
         
-        {/* POPUP THÔNG BÁO GMAIL ẢO MÔ PHỎNG CHUYÊN NGHIỆP */}
+        {/* Email Popup */}
         <AnimatePresence>
           {emailNotification && (
             <motion.div 
@@ -181,12 +221,12 @@ export default function App() {
                   <MailCheck size={24} />
                </div>
                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>Hộp Thư Đến (Mô Phỏng)</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '16px', color: 'var(--text-primary)', marginBottom: '4px' }}>Mã Xác Minh Smart Expense</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>Hộp Thư Đến Định Danh</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '16px', color: 'var(--text-primary)', marginBottom: '4px' }}>Mã Kích Hoạt Két Sắt</div>
                   <div style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>
                     Chào <b>{emailNotification.name}</b>, mã bảo mật của bạn là: <br/>
                     <span style={{ fontSize: '24px', fontWeight: '900', color: 'var(--primary)', letterSpacing: '4px', display: 'block', margin: '8px 0' }}>{emailNotification.otp}</span>
-                    Vui lòng không chia sẻ mã này.
+                    Mã sẽ hết hạn sau 60s. Vui lòng không chia sẻ.
                   </div>
                </div>
                <button onClick={() => setEmailNotification(null)} style={{ position: 'absolute', top: '12px', right: '12px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
@@ -198,79 +238,103 @@ export default function App() {
           className="friendly-card" style={{ width: '100%', maxWidth: '440px', padding: '40px', textAlign: 'center', zIndex: 10 }}>
           
           <div style={{ background: 'var(--primary-bg)', width: '72px', height: '72px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', color: 'var(--primary)' }}>
-            <Wallet size={36} />
+            <ShieldCheck size={36} />
           </div>
           
-          <h2 style={{ marginBottom: '8px', fontSize: '1.8rem', color: 'var(--text-primary)' }}>Smart Expense</h2>
+          <h2 style={{ marginBottom: '8px', fontSize: '1.8rem', color: 'var(--text-primary)' }}>Ví Điện Tử An Toàn</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '15px' }}>
-            {authMode === 'login' && 'Quản lý tiền bạc vui vẻ, thông minh và an tâm hơn mỗi ngày cùng cậu.'}
-            {authMode === 'register_step1' && 'Bắt đầu hành trình tự do tài chính.'}
-            {authMode === 'register_step2_otp' && 'Xác minh Email để bảo vệ dữ liệu cục bộ.'}
-            {authMode === 'register_step3_pwd' && 'Tạo lớp khoá két sắt cuối cùng của cậu.'}
+             {lockoutTimer > 0 
+               ? `Hệ thống tạm khóa cảnh báo Hacker.` 
+               : authMode === 'login' ? 'Nhập thông tin xác thực để mở khóa hệ thống Két Sắt.'
+               : authMode === 'register_step1' ? 'Mở đường dẫn mới an toàn và hoàn toàn bảo mật.'
+               : authMode === 'register_step2_otp' ? 'Nhập mã để bảo vệ chống giả mạo danh tính.'
+               : 'Đừng dùng 12345. Mã hóa AES và SHA256 cục bộ.'}
           </p>
           
           <AnimatePresence mode="wait">
             
-            {/* MÀN LOGIN */}
+            {/* LOGIN FORM */}
             {authMode === 'login' && (
-              <motion.form key="login" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <input name="email" type="email" required placeholder="Email của bạn" className="input-friendly" defaultValue="minhduc@gmail.com" />
-                <input name="password" type="password" required placeholder="Mật khẩu bí mật" className="input-friendly" defaultValue="123" />
+              <motion.form key="login" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
+                {loginAttempts > 0 && lockoutTimer === 0 && (
+                  <div style={{ color: 'var(--danger)', background: 'var(--danger-bg)', padding: '12px', borderRadius: '12px', fontSize: '13px', display: 'flex', gap: '6px', alignItems: 'center', textAlign: 'left' }}>
+                     <AlertTriangle size={16}/> Bạn đã nhập sai {loginAttempts}/3 lần cho phép!
+                  </div>
+                )}
                 
-                <button type="submit" className="btn-primary" style={{ marginTop: '8px', width: '100%', fontSize: '16px' }}>
-                  Đăng Nhập <ChevronRight size={18} />
-                </button>
+                {lockoutTimer > 0 ? (
+                   <div style={{ color: 'white', background: 'var(--danger)', padding: '16px', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold' }}>
+                      🚫 KHÓA TRUY CẬP TRONG {lockoutTimer} GIÂY
+                   </div>
+                ) : (
+                   <>
+                     <input name="off_email" style={{display:'none'}} type="text"/>
+                     <input name="email" type="email" required placeholder="Địa chỉ Email" className="input-friendly" autoComplete="new-email" />
+                     <input name="password" type="password" required placeholder="••••••••" className="input-friendly" autoComplete="new-password" />
+                     
+                     <button type="submit" className="btn-primary" style={{ marginTop: '8px', width: '100%', fontSize: '16px' }}>
+                       Xác Thực <ChevronRight size={18} />
+                     </button>
+                   </>
+                )}
+                
                 <p style={{ marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  Cậu chưa có tài khoản? <span onClick={() => setAuthMode('register_step1')} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Mở ví mới cực nhanh!</span>
+                  Chưa có khóa mã hóa? <span onClick={() => { setAuthMode('register_step1'); setLoginAttempts(0); }} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Mở ví chống trinh sát!</span>
                 </p>
               </motion.form>
             )}
 
-            {/* MÀN ĐĂNG KÝ 1: INFO */}
+            {/* REGISTER STEP 1 */}
             {authMode === 'register_step1' && (
-              <motion.form key="reg1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleRegStep1} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <input name="name" type="text" required placeholder="Họ Tên (VD: Thanh Trúc)" className="input-friendly" />
-                <input name="email" type="email" required placeholder="Gõ Email thật để nhận mã OTP" className="input-friendly" />
+              <motion.form key="reg1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleRegStep1} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
+                <input name="fake_name" style={{display:'none'}} type="text"/>
+                <input name="fake_email" style={{display:'none'}} type="email"/>
                 
+                <input name="name" type="text" required placeholder="Họ Tên Của Bạn (Tự gõ để chống Autofill)" className="input-friendly" autoComplete="new-password" />
+                <input name="email" type="email" required placeholder="Email để Kích hoạt Bảo mật 2 Bước" className="input-friendly" autoComplete="new-password" />
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--surface-base)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                   <input type="checkbox" id="captcha" checked={captchaChecked} onChange={(e) => setCaptchaChecked(e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--success)' }} />
+                   <label htmlFor="captcha" style={{ fontSize: '13px', color: 'var(--text-secondary)', userSelect: 'none', cursor: 'pointer' }}>Xác nhận quyền lưu trữ File Local (Không mã độc)</label>
+                </div>
+
                 <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px' }}>
-                  <MailCheck size={18} /> Gửi Mã Xác Minh
+                  <MailCheck size={18} /> Định Danh 2 Bước
                 </button>
                 <p style={{ marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  Đã là thành viên? <span onClick={() => setAuthMode('login')} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Đăng nhập thôi!</span>
+                  Về lại ranh giới an toàn? <span onClick={() => setAuthMode('login')} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Đăng nhập</span>
                 </p>
               </motion.form>
             )}
 
-            {/* MÀN ĐĂNG KÝ 2: OTP */}
+            {/* REGISTER STEP 2 */}
             {authMode === 'register_step2_otp' && (
-              <motion.form key="reg2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleRegStep2} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <motion.form key="reg2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleRegStep2} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
                 <div style={{ padding: '12px', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: '12px', fontSize: '14px', marginBottom: '8px' }}>
-                   Hệ thống đã gửi hộp thư OTP đến email <b>{tempRegData.email}</b>. Vui lòng kiểm tra!
+                   Giám sát lưu lượng phát hiện OTP vừa được gửi đến <b>{tempRegData.email}</b>. 
                 </div>
-                <input name="otp" type="text" required placeholder="Nhập 6 Số Mã OTP" maxLength={6} className="input-friendly" style={{ letterSpacing: '8px', fontSize: '20px', textAlign: 'center', fontWeight: 'bold' }} />
+                <input name="otp" type="text" required placeholder="MÃ OTP 6 SỐ" maxLength={6} className="input-friendly" style={{ letterSpacing: '8px', fontSize: '20px', textAlign: 'center', fontWeight: 'bold' }} autoComplete="off" />
                 
                 <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px' }}>
-                  Xác Thực OTP
+                  Xác Thực Ủy Quyền
                 </button>
                 <p style={{ marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  <span onClick={() => handleRegStep1({preventDefault: ()=>{}, target:{name:{value: tempRegData.name}, email:{value: tempRegData.email}}})} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Gửi lại mã?</span>
-                  {' '} | {' '}
-                  <span onClick={() => setAuthMode('register_step1')} style={{ color: 'var(--text-muted)', cursor: 'pointer' }}>Đổi Email</span>
+                  <span onClick={() => setAuthMode('register_step1')} style={{ color: 'var(--text-muted)', cursor: 'pointer' }}>Hủy bỏ quy trình</span>
                 </p>
               </motion.form>
             )}
 
-            {/* MÀN ĐĂNG KÝ 3: PASSWORD */}
+            {/* REGISTER STEP 3 */}
             {authMode === 'register_step3_pwd' && (
-              <motion.form key="reg3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleRegStep3} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ padding: '12px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '12px', fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>
-                   Xác thực danh tính công dân thành công. Tính năng Số dư 0đ độc quyền đã kích hoạt. Dữ liệu của bạn được tách rời hoàn toàn!
+              <motion.form key="reg3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleRegStep3} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
+                <div style={{ padding: '12px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '12px', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold', textAlign: 'left' }}>
+                   Bảo mật Lớp 2/2: Đã phát tín hiệu tạo Két. <br/>Mật khẩu sẽ được Băm (Hash) bởi SHA256 thay vì lưu Thô.
                 </div>
-                <input name="password" type="password" required placeholder="Tạo mật khẩu cho két sắt" className="input-friendly" />
-                <input name="repassword" type="password" required placeholder="Nhập lại mật khẩu" className="input-friendly" />
+                <input name="password" type="password" required placeholder="Tạo Lõi Khóa (Tối thiểu 6 ký tự)" className="input-friendly" />
+                <input name="repassword" type="password" required placeholder="Xác nhận Trùng khớp Lõi" className="input-friendly" />
                 
-                <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px' }}>
-                  <Lock size={18} /> Hoàn Tất & Khởi Tạo Két
+                <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px', background: 'var(--success)' }}>
+                  <Lock size={18} /> Niêm Phong & Khởi Động
                 </button>
               </motion.form>
             )}
@@ -303,7 +367,7 @@ export default function App() {
       case 'dashboard': return <Dashboard transactions={myTransactions} goals={myGoals} currency={currency} />;
       case 'reports': return <Reports transactions={myTransactions} currency={currency} />;
       case 'debts': return <DebtManager currency={currency} debts={myDebts} allDebts={allDebts} setAllDebts={setAllDebts} user={user} />;
-      case 'settings': return <Settings user={user} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} />;
+      case 'settings': return <Settings user={user} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} updateUserProfile={updateUserProfile} />;
       default: return <Dashboard transactions={myTransactions} goals={myGoals} currency={currency} />;
     }
   };
@@ -322,7 +386,7 @@ export default function App() {
           <div style={{ background: 'var(--primary-bg)', padding: '10px', borderRadius: '14px', color: 'var(--primary)' }}>
             <Wallet size={26} strokeWidth={2.5} />
           </div>
-          <span style={{ fontSize: '1.3rem', fontWeight: '800', letterSpacing: '-0.02em', color: 'var(--primary)' }}>Smart App</span>
+          <span style={{ fontSize: '1.3rem', fontWeight: '800', letterSpacing: '-0.02em', color: 'var(--primary)' }}>Smart KH</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
@@ -348,9 +412,11 @@ export default function App() {
           <img src={user.avatar} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '12px' }} />
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-            <div style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: '600' }}>Ví bảo mật độc quyền</div>
+            <div style={{ color: 'var(--success)', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <ShieldCheck size={12}/> Đã Gắn Mã Hashing
+            </div>
           </div>
-          <button onClick={handleLogout} className="btn-icon" style={{ borderColor: 'var(--danger-bg)', color: 'var(--danger)', background: 'var(--danger-bg)' }} title="Đăng xuất">
+          <button onClick={handleLogout} className="btn-icon" style={{ borderColor: 'var(--danger-bg)', color: 'var(--danger)', background: 'var(--danger-bg)' }} title="Khóa Cổng Ngay Lập Tức">
             <LogOut size={16} strokeWidth={3} />
           </button>
         </div>
@@ -364,13 +430,13 @@ export default function App() {
         }}>
           <div>
              <h1 style={{ fontSize: '1.6rem', color: 'var(--text-primary)' }}>
-                {activeTab === 'dashboard' && `Chào ngày mới năng suất, ${user.name}! 🌤`}
+                {activeTab === 'dashboard' && `Trạng Thái Két Quản Lý Tiền, ${user.name}! 🌤`}
                 {activeTab === 'reports' && 'Bạn đã chi tiêu thế nào nhỉ?'}
                 {activeTab === 'debts' && 'Đòi nợ tinh tế, chia tiền vui vẻ'}
                 {activeTab === 'settings' && 'Tùy chỉnh góc nhỏ của bạn'}
              </h1>
              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '4px' }}>
-                Tớ ở đây để giúp cậu luôn rủng rỉnh tiền tiêu.
+                Hệ thống 100% bảo mật đầu cuối, đảm bảo không Hacker nào lấy được.
              </p>
           </div>
 

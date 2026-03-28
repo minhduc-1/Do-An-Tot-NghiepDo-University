@@ -141,7 +141,7 @@ export default function Dashboard({ transactions, goals, currency }) {
       </div>
 
       <motion.div variants={itemVariants}>
-        <SmartInsights transactions={transactions} goals={goals} currency={currency} />
+        <SmartInsights transactions={transactions} currency={currency} />
       </motion.div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>

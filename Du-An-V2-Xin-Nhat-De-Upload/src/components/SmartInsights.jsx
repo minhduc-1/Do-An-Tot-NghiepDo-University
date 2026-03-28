@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, AlertTriangle, ShieldCheck, Flame, HeartPulse, Target } from 'lucide-react';
+import { Zap, AlertTriangle, ShieldCheck, Flame, HeartPulse } from 'lucide-react';
 import GoalTracker from './GoalTracker';
 
-export default function SmartInsights({ transactions, goals, currency }) {
+export default function SmartInsights({ transactions, currency }) {
   const [insight, setInsight] = useState(null);
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function SmartInsights({ transactions, goals, currency }) {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="friendly-card" style={{ padding: '24px' }}>
+        className="glass-card" style={{ padding: '24px' }}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
@@ -83,30 +83,30 @@ export default function SmartInsights({ transactions, goals, currency }) {
         </div>
 
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-           <div style={{ position: 'relative', width: '120px', height: '120px', borderRadius: '50%', background: `conic-gradient(var(--${insight.score >= 80 ? 'success' : insight.score >= 50 ? 'warning' : 'danger'}) ${insight.score}%, var(--border-light) 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+           <div style={{ position: 'relative', width: '120px', height: '120px', borderRadius: '50%', background: `conic-gradient(var(--${insight.score >= 80 ? 'success' : insight.score >= 50 ? 'warning' : 'danger'}) ${insight.score}%, var(--border-glass) 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
              <div style={{ position: 'absolute', width: '100px', height: '100px', borderRadius: '50%', background: 'var(--surface-opaque)', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '28px', color: `var(--${insight.score >= 80 ? 'success' : insight.score >= 50 ? 'warning' : 'danger'})` }}>
                 {insight.score}
              </div>
            </div>
            
            <div style={{ flex: 1 }}>
-              <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--text-muted)' }}>Thuật toán Tâm Lý (AI):</p>
+              <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--text-muted)' }}>Thuật toán Bắt Mạch Tâm Lý:</p>
               
-              <div style={{ background: 'var(--surface-opaque)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-light)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ background: 'var(--surface-opaque)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-glass)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                  <Flame size={16} color="var(--warning)" />
                  <span style={{ fontSize: '14px', fontWeight: '600' }}>Tâm lý hôm nay: {insight.emotion}</span>
               </div>
 
               {insight.streak > 0 && (
                  <div style={{ background: 'var(--success-bg)', color: 'var(--success)', padding: '8px 12px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold' }}>
-                   🔥 Chuỗi Tiết Kiệm: {insight.streak} Ngày
+                   🔥 No-Spend Challenge: {insight.streak} Ngày Kỷ Lục
                  </div>
               )}
            </div>
         </div>
 
         {/* Cảnh báo AI */}
-        <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-light)' }}>
+        <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-glass)' }}>
            <h4 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
              <ShieldCheck size={16} /> Lời khuyên Độc quyền từ AI
            </h4>
@@ -120,30 +120,22 @@ export default function SmartInsights({ transactions, goals, currency }) {
         </div>
       </motion.div>
 
-      {/* Tích hợp Load Mục tiêu Thực Tế */}
+      {/* Tích hợp Load Mục tiêu */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-        <div className="friendly-card" style={{ padding: '24px', border: '1px solid var(--border-light)' }}>
-             <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-               <Target size={20} color="var(--primary)" /> Mục Tiêu (Goals)
-             </h3>
-             {goals.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0', fontSize: '14px', background: 'var(--bg-app)', borderRadius: '12px' }}>
-                   Tuyệt đối không có số dư ẩn! <br/> Bạn chưa thiết lập mục tiêu nào. Hãy nhấn "Cắm cờ Mục tiêu".
-                </div>
-             ) : (
-                <GoalTracker goals={goals} currency={currency} />
-             )}
-        </div>
+        <GoalTracker goals={[
+           { name: 'Du Lịch Đà Nẵng', target: 30000000, current: 10000000, percent: 30 },
+           { name: 'Quỹ Mua Xe', target: 50000000, current: 40000000, percent: 80 }
+        ]} currency={currency} />
         
-        {/* Bản đồ Heatmap */}
-        <div className="friendly-card" style={{ padding: '24px', marginTop: '24px' }}>
+        {/* Bản đồ Heatmap (Giả lập đồ họa xịn) */}
+        <div className="glass-card" style={{ padding: '24px', marginTop: '24px' }}>
            <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <Zap size={20} color="var(--danger)" /> Bản Đồ Vị Trí Vung Tiền
+             <Zap size={20} color="var(--danger)" /> Radar HeatMap Vị Trí Vung Tiền
            </h3>
-           <div style={{ width: '100%', height: '180px', background: 'url(https://miro.medium.com/v2/resize:fit:1400/1*C2mZtYkU308E7g4-zN8kGQ.png) center/cover', borderRadius: '16px', border: '1px solid var(--border-light)', position: 'relative', overflow: 'hidden' }}>
+           <div style={{ width: '100%', height: '180px', background: 'url(https://miro.medium.com/v2/resize:fit:1400/1*C2mZtYkU308E7g4-zN8kGQ.png) center/cover', borderRadius: '16px', border: '1px solid var(--border-glass)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)' }}></div>
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--danger-bg)', padding: '12px 24px', borderRadius: '24px', color: 'var(--danger)', fontWeight: 'bold', border: '1px solid var(--danger)', backdropFilter: 'blur(4px)' }}>
-                📍 Trung tâm Mua Sắm
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--danger-bg)', padding: '12px 24px', borderRadius: '24px', color: 'white', fontWeight: 'bold', border: '1px solid var(--danger)', backdropFilter: 'blur(4px)' }}>
+                📍 Trung tâm TP. Hồ Chí Minh
               </div>
            </div>
         </div>

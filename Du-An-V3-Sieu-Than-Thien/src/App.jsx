@@ -42,11 +42,9 @@ export default function App() {
   // Data State - Gán cho một User cụ thể
   const [allTransactions, setAllTransactions] = useState(() => loadData('tx_data', []));
   const [allGoals, setAllGoals] = useState(() => loadData('goals_data', []));
-  const [allDebts, setAllDebts] = useState(() => loadData('debts_data', []));
 
   useEffect(() => { saveData('tx_data', allTransactions); }, [allTransactions]);
   useEffect(() => { saveData('goals_data', allGoals); }, [allGoals]);
-  useEffect(() => { saveData('debts_data', allDebts); }, [allDebts]);
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
@@ -87,7 +85,7 @@ export default function App() {
     if (account) {
        setUser({
          ...account,
-         avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${account.name.replace(' ','+')}&backgroundColor=0d9488`
+         avatar: `https://ui-avatars.com/api/?name=${account.name.replace(' ','+')}&background=0d9488&color=fff&size=128&rounded=true`
        });
        logAction(email, 'Đăng nhập', `Đăng nhập thiết bị`);
        resetTimeout();
@@ -110,11 +108,10 @@ export default function App() {
     setTempRegData({ ...tempRegData, name, email });
     setAuthMode('register_step2_otp');
 
-    // Hiệu ứng gửi mail ảo
+    // Hiệu ứng gửi mail ảo trực quan lơ lửng trên màn hình
     setTimeout(() => {
       setEmailNotification({ name, otp, email });
-      // Tăng thời gian hiển thị lên 60s để người dùng kịp thao tác đọc OTP
-      setTimeout(() => setEmailNotification(null), 60000); 
+      setTimeout(() => setEmailNotification(null), 10000); // Ẩn sau 10s
     }, 800);
   };
 
@@ -143,7 +140,7 @@ export default function App() {
     // Đăng nhập luôn sau khi tạo
     setUser({
       ...newUser,
-      avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${tempRegData.name.replace(' ','+')}&backgroundColor=0d9488`
+      avatar: `https://ui-avatars.com/api/?name=${tempRegData.name.replace(' ','+')}&background=0d9488&color=fff&size=128&rounded=true`
     });
     
     // KHÔNG tạo giao dịch mồi -> Trả về 0đ theo yêu cầu! Vĩnh viễn lưu cache cho account này.
@@ -289,7 +286,6 @@ export default function App() {
   // Lọc Data cho User
   const myTransactions = allTransactions.filter(t => t.owner === user.email);
   const myGoals = allGoals.filter(g => g.owner === user.email);
-  const myDebts = allDebts.filter(d => d.owner === user.email);
 
   const handleAddTx = (tx) => {
     setAllTransactions([{ ...tx, owner: user.email }, ...allTransactions]);
@@ -302,17 +298,17 @@ export default function App() {
     switch(activeTab) {
       case 'dashboard': return <Dashboard transactions={myTransactions} goals={myGoals} currency={currency} />;
       case 'reports': return <Reports transactions={myTransactions} currency={currency} />;
-      case 'debts': return <DebtManager currency={currency} debts={myDebts} allDebts={allDebts} setAllDebts={setAllDebts} user={user} />;
+      case 'debts': return <DebtManager currency={currency} />;
       case 'settings': return <Settings user={user} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} />;
       default: return <Dashboard transactions={myTransactions} goals={myGoals} currency={currency} />;
     }
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Trang Chủ', icon: <LayoutDashboard size={20} /> },
-    { id: 'reports', label: 'Thống Kê', icon: <PieChart size={20} /> },
-    { id: 'debts', label: 'Sổ Nợ', icon: <Receipt size={20} /> },
-    { id: 'settings', label: 'Cài Đặt', icon: <SettingsIcon size={20} /> },
+    { id: 'dashboard', label: 'Tạp Dề (Trang chủ)', icon: <LayoutDashboard size={20} /> },
+    { id: 'reports', label: 'Thống Kê Thần Tốc', icon: <PieChart size={20} /> },
+    { id: 'debts', label: 'Tình Bạn (Sổ nợ)', icon: <Receipt size={20} /> },
+    { id: 'settings', label: 'Cài Đặt Của Tớ', icon: <SettingsIcon size={20} /> },
   ];
 
   return (

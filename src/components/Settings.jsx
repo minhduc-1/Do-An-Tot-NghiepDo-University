@@ -5,7 +5,7 @@ import { saveData, loadData } from '../services/StorageService';
 import { logAction } from '../services/AuditService';
 import { DownloadCloud, UploadCloud, Coins, ShieldAlert, User, Mail, Database, LogOut, Flame, Edit3, Check, X } from 'lucide-react';
 
-export default function Settings({ user, onLogout, currency, setCurrency, updateUserProfile, monthlyBudget, setMonthlyBudget }) {
+export default function Settings({ user, onLogout, currency, setCurrency, updateUserProfile, monthlyBudget, setMonthlyBudget, onResetAccountData }) {
   const [msg, setMsg] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState(user.name);
@@ -58,6 +58,15 @@ export default function Settings({ user, onLogout, currency, setCurrency, update
         alert('Tất cả dữ liệu đã được giải phóng về 0. Hãy bắt đầu hành trang mới với bảo mật cấp cao.');
         onLogout();
         window.location.reload();
+    }
+  };
+
+  const executeResetToZero = () => {
+    const p = window.prompt("XÁC NHẬN BẢO MẬT\n\nMọi dữ liệu Lịch sử Thu/chi, Sổ Nợ, Mục tiêu, Nhật ký, Thùng rác của bạn sẽ BỊ LÀM SẠCH HOÀN TOÀN về 0đ (không ảnh hưởng Quỹ Nhóm).\n\nNếu chắc chắn, hãy gõ chữ XOA vào ô bên dưới:");
+    if (p === 'XOA' || p === 'xoa') {
+        if (onResetAccountData) onResetAccountData();
+    } else if (p !== null) {
+        alert("Xác nhận thất bại. Dữ liệu của bạn tạm thời vẫn an toàn.");
     }
   };
 
@@ -213,11 +222,23 @@ export default function Settings({ user, onLogout, currency, setCurrency, update
 
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                <div style={{ maxWidth: '450px' }}>
+                  <h3 style={{ color: 'var(--warning)', fontSize: '16px', marginBottom: '4px' }}>Khởi Tạo Lại Tài Khoản 0đ</h3>
+                  <p style={{ color: 'rgba(239, 68, 68, 0.8)', fontSize: '13.5px', margin: 0 }}>Làm sạch dòng tiền, sổ quỹ, nợ nần cá nhân. Giữ lại Nhóm chung.</p>
+               </div>
+               <button onClick={executeResetToZero} className="btn-secondary" style={{ borderColor: 'var(--warning)', background: 'transparent', color: 'var(--warning)' }}>
+                  <Edit3 size={18} /> Đặt Lại Tất Cả Về 0
+               </button>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px dashed rgba(239, 68, 68, 0.4)', margin: '24px 0' }} />
+
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+               <div style={{ maxWidth: '450px' }}>
                   <h3 style={{ color: 'var(--danger)', fontSize: '16px', marginBottom: '4px' }}>Tiêu Hủy Không Vết Tích</h3>
-                  <p style={{ color: 'rgba(239, 68, 68, 0.8)', fontSize: '13.5px', margin: 0 }}>Chỉ dùng khi bị đe dọa. Tất cả số dư, lịch sử, nợ nần sẽ bốc hơi khỏi máy tính này.</p>
+                  <p style={{ color: 'rgba(239, 68, 68, 0.8)', fontSize: '13.5px', margin: 0 }}>Xóa sạch mọi DB local của bạn và người khác. Chỉ dùng khẩn cấp.</p>
                </div>
                <button onClick={handleHardReset} className="btn-secondary" style={{ borderColor: 'var(--danger)', background: 'transparent', color: 'var(--danger)' }}>
-                  <Flame size={18} /> Phá Hủy Tự Động
+                  <Flame size={18} /> Thu Hồi CSDL Nhóm
                </button>
             </div>
          </div>

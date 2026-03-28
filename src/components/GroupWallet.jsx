@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Plus, Key, ArrowRightLeft, UploadCloud, DownloadCloud, Wallet, Copy, RefreshCw } from 'lucide-react';
+import { Users, Plus, Key, ArrowRightLeft, UploadCloud, DownloadCloud, Wallet, Copy, RefreshCw, Trash2, Check, X, ShieldAlert } from 'lucide-react';
 
-export default function GroupWallet({ user, currency, allGroups, setAllGroups, allGroupTx, setAllGroupTx }) {
+export default function GroupWallet({ user, currency, allGroups, setAllGroups, allGroupTx, setAllGroupTx, moveToTrash }) {
   const [activeGroup, setActiveGroup] = useState(null); // The group being viewed
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -20,9 +20,11 @@ export default function GroupWallet({ user, currency, allGroups, setAllGroups, a
     const newG = {
        id: 'g_' + Date.now(),
        name,
+       owner: user.email,
        members: [user.email],
+       pendingRequests: [],
        code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-       createdAt: new Date().toISOString()
+       createdAt: new Date().getTime()
     };
     setAllGroups([newG, ...allGroups]);
     setShowCreate(false);
@@ -35,12 +37,48 @@ export default function GroupWallet({ user, currency, allGroups, setAllGroups, a
     const checkG = allGroups.find(g => g.code === code);
     if (!checkG) return alert('Mã tham gia không tồn tại!');
     if (checkG.members.includes(user.email)) return alert('Bạn đã ở trong quỹ này rồi!');
+    if ((checkG.pendingRequests || []).includes(user.email)) return alert('Đơn xin gia nhập của bạn đang chờ phê duyệt!');
     
-    // Add user.email to members
-    const updated = allGroups.map(g => g.id === checkG.id ? { ...g, members: [...g.members, user.email] } : g);
+    const updated = allGroups.map(g => g.id === checkG.id ? { ...g, pendingRequests: [...(g.pendingRequests || []), user.email] } : g);
     setAllGroups(updated);
     setShowJoin(false);
-    setActiveGroup(checkG.id);
+    alert('Đã gửi đơn xin gia nhập. Vui lòng chờ Chủ quỹ phê duyệt!');
+  };
+
+  const handleApproveMember = (groupId, email) => {
+     setAllGroups(allGroups.map(g => {
+        if (g.id !== groupId) return g;
+        return { 
+           ...g, 
+           pendingRequests: g.pendingRequests.filter(e => e !== email),
+           members: [...g.members, email]
+        };
+     }));
+  };
+
+  const handleRejectMember = (groupId, email) => {
+     if (window.confirm(`Bạn có chắc muốn từ chối ${email}?`)) {
+        setAllGroups(allGroups.map(g => {
+           if (g.id !== groupId) return g;
+           return { ...g, pendingRequests: g.pendingRequests.filter(e => e !== email) };
+        }));
+     }
+  };
+
+  const handleKickMember = (groupId, email) => {
+     if (window.confirm(`Bảo mật: Xác nhận trục xuất ${email} khỏi nhóm?`)) {
+        setAllGroups(allGroups.map(g => {
+           if (g.id !== groupId) return g;
+           return { ...g, members: g.members.filter(e => e !== email) };
+        }));
+     }
+  };
+
+  const handleDeleteGroupTx = (tx) => {
+     if (window.confirm(`Chủ Quỹ: Bạn có chắc muốn XÓA Lệch giao dịch này? Nó sẽ bị tống vào thùng rác!`)) {
+        if (moveToTrash) moveToTrash(tx, 'QUỸ_NHÓM');
+        setAllGroupTx(allGroupTx.filter(t => t.id !== tx.id));
+     }
   };
 
   const handleGroupTx = (type) => {
@@ -55,7 +93,7 @@ export default function GroupWallet({ user, currency, allGroups, setAllGroups, a
        amount: val,
        note: txNote,
        owner: user.email,
-       date: new Date().toISOString()
+       date: new Date().getTime()
     };
     
     setAllGroupTx([newTx, ...allGroupTx]);
@@ -142,11 +180,57 @@ export default function GroupWallet({ user, currency, allGroups, setAllGroups, a
                     </div>
                  </div>
                  
-                 <div style={{ display: 'flex', gap: '16px', background: 'var(--surface-opaque)', padding: '16px', borderRadius: '16px' }}>
-                     <Users size={20} color="var(--text-muted)" />
-                     <div style={{ flex: 1, fontSize: '14px', color: 'var(--text-secondary)' }}>
-                        <strong>Thành Viên:</strong> {currentGroupObj.members.join(', ')}
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--surface-opaque)', padding: '16px', borderRadius: '16px' }}>
+                     <div style={{ display: 'flex', gap: '16px' }}>
+                         <Users size={20} color="var(--text-muted)" />
+                         <div style={{ flex: 1, fontSize: '14px', color: 'var(--text-secondary)' }}>
+                            <strong>Thành Viên:</strong> {currentGroupObj.members.join(', ')}
+                         </div>
                      </div>
+                     
+                     {/* Bảng điều khiển Owner */}
+                     {currentGroupObj.owner === user.email && (
+                         <div style={{ marginTop: '16px', padding: '16px', background: 'var(--danger-bg)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                            <h4 style={{ fontSize: '14px', color: 'var(--danger)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '800' }}>
+                               <ShieldAlert size={18} /> QUẢN TRỊ VIÊN KHU VỰC CHỦ QUỸ
+                            </h4>
+                            
+                            {/* Danh sách xin duyệt */}
+                            {currentGroupObj.pendingRequests && currentGroupObj.pendingRequests.length > 0 && (
+                               <div style={{ background: 'var(--surface-base)', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '3px solid var(--warning)' }}>
+                                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--warning)', marginBottom: '8px' }}>Yêu Cầu Chờ Duyệt Gia Nhập:</div>
+                                  {currentGroupObj.pendingRequests.map(pemail => (
+                                     <div key={pemail} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '8px', borderBottom: '1px dashed var(--border-light)', paddingBottom: '4px' }}>
+                                        <span style={{ fontWeight: '600' }}>{pemail}</span>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                           <button onClick={() => handleApproveMember(currentGroupObj.id, pemail)} className="btn-icon" style={{ padding: '6px 12px', background: 'var(--success)', color: 'white', fontSize: '12px', borderRadius: '8px' }}><Check size={14}/> Duyệt</button>
+                                           <button onClick={() => handleRejectMember(currentGroupObj.id, pemail)} className="btn-icon" style={{ padding: '6px 12px', background: 'var(--danger)', color: 'white', fontSize: '12px', borderRadius: '8px' }}><X size={14}/> Từ Chối</button>
+                                        </div>
+                                     </div>
+                                  ))}
+                               </div>
+                            )}
+
+                            {/* Danh sách đuổi thành viên */}
+                            <div style={{ background: 'var(--surface-base)', padding: '12px', borderRadius: '8px', borderLeft: '3px solid var(--danger)' }}>
+                               <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--danger)', marginBottom: '8px' }}>Quản Lý & Trục Xuất Cổ Đông:</div>
+                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                  {currentGroupObj.members.map(memail => (
+                                     <div key={memail} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--background-app)', padding: '6px 12px', borderRadius: '12px', fontSize: '12px', border: memail === user.email ? '1px solid var(--primary)' : '1px dashed var(--danger)' }}>
+                                        <strong style={{ color: memail === user.email ? 'var(--primary)' : 'var(--text-primary)' }}>{memail}</strong>
+                                        {memail !== user.email ? (
+                                           <button onClick={() => handleKickMember(currentGroupObj.id, memail)} style={{ border: 'none', background: 'var(--danger-bg)', color: 'var(--danger)', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold' }} title="Trục xuất">
+                                              Trục xuất
+                                           </button>
+                                        ) : (
+                                           <span style={{ fontSize: '11px', color: 'var(--primary)', background: 'var(--primary-bg)', padding: '2px 6px', borderRadius: '4px' }}>Chủ Quỹ</span>
+                                        )}
+                                     </div>
+                                  ))}
+                               </div>
+                            </div>
+                         </div>
+                     )}
                  </div>
              </div>
 
@@ -184,14 +268,21 @@ export default function GroupWallet({ user, currency, allGroups, setAllGroups, a
                        {currentGroupTxs.length === 0 ? (
                           <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', padding: '20px 0' }}>Chưa có lệnh chuyển tiền nào phát sinh do thành viên.</div>
                        ) : (
-                          currentGroupTxs.map(t => (
+                           currentGroupTxs.map(t => (
                              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--surface-base)', borderRadius: '12px', borderLeft: `4px solid ${t.type === 'DEPOSIT' ? 'var(--success)' : 'var(--danger)'}` }}>
                                 <div>
                                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{t.note || 'Không ghi chú'}</div>
-                                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Người khởi tạo: {t.owner === user.email ? 'Bạn' : t.owner}</div>
+                                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>{new Date(t.date).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })} • Tạo bởi: <strong style={{ color: 'var(--primary)' }}>{t.owner === user.email ? 'Bạn' : t.owner}</strong></div>
                                 </div>
-                                <div style={{ fontSize: '14px', fontWeight: '800', color: t.type === 'DEPOSIT' ? 'var(--success)' : 'var(--danger)' }}>
-                                   {t.type === 'DEPOSIT' ? '+' : '-'}{formatter.format(t.amount)}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                   <div style={{ fontSize: '14px', fontWeight: '800', color: t.type === 'DEPOSIT' ? 'var(--success)' : 'var(--danger)' }}>
+                                      {t.type === 'DEPOSIT' ? '+' : '-'}{formatter.format(t.amount)}
+                                   </div>
+                                   {currentGroupObj.owner === user.email && (
+                                      <button onClick={() => handleDeleteGroupTx(t)} className="btn-icon" style={{ borderColor: 'transparent', color: 'var(--danger)' }} title="Xóa Lệnh Này">
+                                         <Trash2 size={16} />
+                                      </button>
+                                   )}
                                 </div>
                              </div>
                           ))

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CryptoJS from 'crypto-js';
-import { LayoutDashboard, Wallet, Target, PieChart, Receipt, Settings as SettingsIcon, LogOut, Moon, Sun, ShieldCheck, UserPlus, LogIn, ChevronRight, MailCheck, Lock, AlertTriangle, BookOpen, Users } from 'lucide-react';
+import { LayoutDashboard, Wallet, Target, PieChart, Receipt, Settings as SettingsIcon, LogOut, Moon, Sun, ShieldCheck, UserPlus, LogIn, ChevronRight, MailCheck, Lock, AlertTriangle, BookOpen, Users, Trash2 } from 'lucide-react';
 
 import Dashboard from './components/Dashboard';
 import TransactionForm from './components/TransactionForm';
@@ -13,6 +13,7 @@ import DebtManager from './components/DebtManager';
 import AdminDashboard from './components/AdminDashboard';
 import DailyJournal from './components/DailyJournal';
 import GroupWallet from './components/GroupWallet';
+import Trash from './components/Trash';
 
 import { saveData, loadData } from './services/StorageService';
 import { logAction } from './services/AuditService';
@@ -58,6 +59,7 @@ export default function App() {
   const [allJournals, setAllJournals] = useState(() => loadData('journals_data', []));
   const [allGroups, setAllGroups] = useState(() => loadData('groups_data', []));
   const [allGroupTx, setAllGroupTx] = useState(() => loadData('group_tx_data', []));
+  const [trashData, setTrashData] = useState(() => loadData('trash_data', []));
 
   useEffect(() => { saveData('tx_data', allTransactions); }, [allTransactions]);
   useEffect(() => { saveData('goals_data', allGoals); }, [allGoals]);
@@ -65,6 +67,7 @@ export default function App() {
   useEffect(() => { saveData('journals_data', allJournals); }, [allJournals]);
   useEffect(() => { saveData('groups_data', allGroups); }, [allGroups]);
   useEffect(() => { saveData('group_tx_data', allGroupTx); }, [allGroupTx]);
+  useEffect(() => { saveData('trash_data', trashData); }, [trashData]);
   
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -194,6 +197,58 @@ export default function App() {
     alert(`Khởi tạo thành công! Chào ${tempRegData.name}. Mọi thứ đã đưa về 0đ an toàn.`);
   };
 
+  const handleForgotStep1 = (e) => {
+    e.preventDefault();
+    const email = e.target.email.value.trim();
+    
+    // Tìm kiếm tài khoản có tồn tại
+    const account = usersDB.find(u => u.email === email);
+    if (!account) return alert('Thật đáng tiếc, Email này chưa được đăng ký trong hệ thống!');
+    
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOTP(otp);
+    setTempRegData({ email, name: account.name }); // Tái sử dụng tempRegData để lưu email cần quên pass
+    setAuthMode('forgot_step2_otp');
+
+    // Chèn delay nhẹ tạo cảm giác xử lý gửi mail thực
+    setTimeout(() => {
+      setEmailNotification({ name: account.name, otp, email });
+      setTimeout(() => setEmailNotification(null), 60000); // Popup sống 60s
+    }, 800);
+  };
+
+  const handleForgotStep2 = (e) => {
+    e.preventDefault();
+    const inputOTP = e.target.otp.value;
+    if (inputOTP === generatedOTP) {
+        setAuthMode('forgot_step3_pwd');
+    } else {
+        alert('Mã Khôi phục (OTP) không chính xác. Vui lòng thử lại!');
+    }
+  };
+
+  const handleForgotStep3 = (e) => {
+    e.preventDefault();
+    const pwd = e.target.password.value;
+    const rePwd = e.target.repassword.value;
+
+    if (pwd.length < 6) return alert('Cảnh báo bảo mật: Mật khẩu mới cần dài tối thiểu 6 ký tự để làm khó hacker.');
+    if (pwd !== rePwd) return alert('Hai mật khẩu không khớp. Vui lòng đối chiếu lại.');
+    
+    // Băm bảo mật và update CSDL
+    const securePwd = hashPwd(pwd);
+    const updatedUsers = usersDB.map(u => 
+       u.email === tempRegData.email ? { ...u, password: securePwd } : u
+    );
+    
+    setUsersDB(updatedUsers);
+    
+    logAction(tempRegData.email, 'Khôi phục Mật Khẩu', `Mật khẩu đổi thành công với xác thực OTP.`);
+    alert(`Quá trình Khôi phục hoàn tất! Chào mừng ${tempRegData.name} quay lại. Vui lòng đăng nhập.`);
+    
+    setAuthMode('login'); // Yêu cầu người dùng tự đăng nhập lại cho an toàn tuyệt đối
+  };
+
   const handleLogout = () => {
     if(user) logAction(user.email, 'Đăng xuất', 'Rời hệ thống');
     setUser(null);
@@ -263,7 +318,10 @@ export default function App() {
                : authMode === 'login' ? 'Vui lòng đăng nhập để truy cập hệ thống quản lý.'
                : authMode === 'register_step1' ? 'Thiết lập tài khoản quản lý tài chính cá nhân mới.'
                : authMode === 'register_step2_otp' ? 'Nhập mã xác thực để hoàn tất quá trình định danh.'
-               : 'Khởi tạo mật khẩu. Hệ thống sử dụng mã hoá bảo mật cao cấp.'}
+               : authMode === 'register_step3_pwd' ? 'Khởi tạo mật khẩu. Hệ thống sử dụng mã hoá bảo mật cao cấp.'
+               : authMode === 'forgot_step1' ? 'Nhập Email của bạn để lấy lại mật khẩu Két Sắt.'
+               : authMode === 'forgot_step2_otp' ? 'Xác thực mã bảo mật khôi phục gửi đến Email của bạn.'
+               : 'Thiết lập Mật khẩu mới an toàn.'}
           </p>
           
           <AnimatePresence mode="wait">
@@ -293,9 +351,14 @@ export default function App() {
                    </>
                 )}
                 
-                <p style={{ marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  Chưa có tài khoản? <span onClick={() => { setAuthMode('register_step1'); setLoginAttempts(0); }} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Đăng ký ngay</span>
-                </p>
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  <div>
+                    Chưa có tài khoản? <span onClick={() => { setAuthMode('register_step1'); setLoginAttempts(0); }} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Đăng ký ngay</span>
+                  </div>
+                  <div>
+                    Quên khóa mở két? <span onClick={() => { setAuthMode('forgot_step1'); setLoginAttempts(0); }} style={{ color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>Khôi phục mật khẩu</span>
+                  </div>
+                </div>
               </motion.form>
             )}
 
@@ -354,6 +417,51 @@ export default function App() {
               </motion.form>
             )}
 
+            {/* FORGOT STEP 1 */}
+            {authMode === 'forgot_step1' && (
+              <motion.form key="forgot1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleForgotStep1} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
+                <input name="email" type="email" required placeholder="Nhập Email để nhận Mã Khôi Phục" className="input-friendly" />
+                <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px' }}>
+                  <MailCheck size={18} /> Gửi Mã Khôi Phục
+                </button>
+                <div style={{ marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  Mọi thứ ổn rồi? <span onClick={() => setAuthMode('login')} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Quay lại Đăng nhập</span>
+                </div>
+              </motion.form>
+            )}
+
+             {/* FORGOT STEP 2 */}
+            {authMode === 'forgot_step2_otp' && (
+              <motion.form key="forgot2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleForgotStep2} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
+                <div style={{ padding: '12px', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: '12px', fontSize: '14px', marginBottom: '8px' }}>
+                   Mã khôi phục OTP vừa được gửi đến Email: <b>{tempRegData.email}</b>. 
+                </div>
+                <input name="otp" type="text" required placeholder="MÃ OTP 6 SỐ" maxLength={6} className="input-friendly" style={{ letterSpacing: '8px', fontSize: '20px', textAlign: 'center', fontWeight: 'bold' }} autoComplete="off" />
+                
+                <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px' }}>
+                  Xác Nhận OTP
+                </button>
+                <p style={{ marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  <span onClick={() => setAuthMode('forgot_step1')} style={{ color: 'var(--text-muted)', cursor: 'pointer' }}>Hủy Khôi Phục</span>
+                </p>
+              </motion.form>
+            )}
+
+            {/* FORGOT STEP 3 */}
+            {authMode === 'forgot_step3_pwd' && (
+              <motion.form key="forgot3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleForgotStep3} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
+                <div style={{ padding: '12px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '12px', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold', textAlign: 'left' }}>
+                   Xác thực quyền sở hữu thành công. Vui lòng nhập Mật khẩu mới thay cho mật khẩu cũ.
+                </div>
+                <input name="password" type="password" required placeholder="Nhập Mật khẩu mới (Tối thiểu 6 ký tự)" className="input-friendly" />
+                <input name="repassword" type="password" required placeholder="Xác nhận lại Mật khẩu" className="input-friendly" />
+                
+                <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px', background: 'var(--success)' }}>
+                  <Lock size={18} /> Đổi Mật Khẩu
+                </button>
+              </motion.form>
+            )}
+
           </AnimatePresence>
         </motion.div>
       </div>
@@ -372,26 +480,72 @@ export default function App() {
   const myGroupTx = allGroupTx.filter(t => t.owner === user.email);
 
   const handleAddTx = (tx) => {
-    setAllTransactions(prev => [{ ...tx, owner: user.email }, ...prev]);
+    // Luôn bọc thời gian chuẩn xác
+    const finalTx = { ...tx, owner: user.email, timestamp: new Date().getTime() };
+    setAllTransactions(prev => [finalTx, ...prev]);
   };
   const handleDeleteTx = (id) => {
-    if (window.confirm("Bạn có chắc muốn xóa giao dịch này không?")) {
-      setAllTransactions(prev => prev.filter(t => t.id !== id));
+    if (window.confirm("CẢNH BÁO: Giao dịch này sẽ bị xóa khỏi Báo cáo và chuyển vào Thùng Rác. Tiếp tục?")) {
+      const deletedItem = allTransactions.find(t => t.id === id);
+      if (deletedItem) {
+         setTrashData(prev => [{ ...deletedItem, deletedAt: new Date().getTime(), sourceType: 'CÁ_NHÂN' }, ...prev]);
+         setAllTransactions(prev => prev.filter(t => t.id !== id));
+      }
     }
   };
   const handleAddGoal = (g) => {
     setAllGoals(prev => [...prev, { ...g, owner: user.email }]);
   };
 
+  const moveToTrash = (item, type = 'KHÁC') => {
+     setTrashData(prev => [{ ...item, deletedAt: new Date().getTime(), sourceType: type }, ...prev]);
+  };
+
+  const handleRestoreTrash = (id) => {
+     const item = trashData.find(t => t.id === id);
+     if (!item) return;
+
+     if (item.sourceType === 'CÁ_NHÂN') {
+        setAllTransactions(prev => [item, ...prev]);
+     } else if (item.sourceType === 'QUỸ_NHÓM') {
+        setAllGroupTx(prev => [item, ...prev]);
+     } else if (item.sourceType === 'HÓA_ĐƠN') {
+        // Hóa đơn được khôi phục sẽ phát tín hiệu ra event cục bộ vì state của BillReminder độc lập
+        window.dispatchEvent(new CustomEvent('RESTORE_BILL', { detail: item }));
+     }
+     
+     setTrashData(prev => prev.filter(t => t.id !== id));
+     alert('Phục hồi dữ liệu thành công!');
+  };
+
+  const handleEmptyTrash = () => {
+     if (window.confirm("BẢO MẬT: Mọi rác thải sẽ bị nung chảy vĩnh viễn không thể khôi phục. Xác nhận?")) {
+        setTrashData(prev => prev.filter(t => t.owner !== user.email));
+     }
+  };
+
+  const handleResetAccountData = () => {
+     // Lọc và giữ lại data không phải của user cần xóa
+     setAllTransactions(prev => prev.filter(t => t.owner !== user.email));
+     setAllGoals(prev => prev.filter(g => g.owner !== user.email));
+     setAllDebts(prev => prev.filter(d => d.owner !== user.email));
+     setAllJournals(prev => prev.filter(j => j.owner !== user.email));
+     setTrashData(prev => prev.filter(t => t.owner !== user.email));
+     
+     // Không xóa Group và GroupTx vì nó thuộc về nhiều người
+     alert('Khởi tạo lại dữ liệu thành công! Tài khoản của bạn đã trở về trạng thái nguyên sơ 0đ.');
+  };
+
   const renderContent = () => {
     switch(activeTab) {
-      case 'dashboard': return <Dashboard transactions={myTransactions} goals={myGoals} currency={currency} onDeleteTx={handleDeleteTx} monthlyBudget={monthlyBudget} user={user} />;
+      case 'dashboard': return <Dashboard transactions={myTransactions} goals={myGoals} currency={currency} onDeleteTx={handleDeleteTx} monthlyBudget={monthlyBudget} user={user} moveToTrash={moveToTrash} />;
       case 'journal': return <DailyJournal user={user} currency={currency} allJournals={allJournals} setAllJournals={setAllJournals} handleAddTx={handleAddTx} />;
-      case 'group': return <GroupWallet user={user} currency={currency} allGroups={allGroups} setAllGroups={setAllGroups} allGroupTx={allGroupTx} setAllGroupTx={setAllGroupTx} />;
+      case 'group': return <GroupWallet user={user} currency={currency} allGroups={allGroups} setAllGroups={setAllGroups} allGroupTx={allGroupTx} setAllGroupTx={setAllGroupTx} moveToTrash={moveToTrash} />;
       case 'reports': return <Reports transactions={myTransactions} currency={currency} onDeleteTx={handleDeleteTx} />;
       case 'debts': return <DebtManager currency={currency} debts={myDebts} allDebts={allDebts} setAllDebts={setAllDebts} user={user} />;
-      case 'settings': return <Settings user={user} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} updateUserProfile={updateUserProfile} monthlyBudget={monthlyBudget} setMonthlyBudget={setMonthlyBudget} />;
-      default: return <Dashboard transactions={myTransactions} goals={myGoals} currency={currency} onDeleteTx={handleDeleteTx} monthlyBudget={monthlyBudget} user={user} />;
+      case 'settings': return <Settings user={user} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} updateUserProfile={updateUserProfile} monthlyBudget={monthlyBudget} setMonthlyBudget={setMonthlyBudget} onResetAccountData={handleResetAccountData} />;
+      case 'trash': return <Trash user={user} currency={currency} trashData={trashData} setTrashData={setTrashData} restoreItem={handleRestoreTrash} emptyTrash={handleEmptyTrash} />;
+      default: return <Dashboard transactions={myTransactions} goals={myGoals} currency={currency} onDeleteTx={handleDeleteTx} monthlyBudget={monthlyBudget} user={user} moveToTrash={moveToTrash} />;
     }
   };
 
@@ -402,6 +556,7 @@ export default function App() {
     { id: 'reports', label: 'Thống Kê', icon: <PieChart size={20} /> },
     { id: 'debts', label: 'Sổ Nợ', icon: <Receipt size={20} /> },
     { id: 'settings', label: 'Cài Đặt', icon: <SettingsIcon size={20} /> },
+    { id: 'trash', label: 'Thùng Rác', icon: <Trash2 size={20} /> },
   ];
 
   return (

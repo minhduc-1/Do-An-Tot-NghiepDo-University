@@ -56,6 +56,7 @@ export default function TransactionForm({ onClose, onAdd }) {
     onAdd({
       id: Date.now().toString(),
       date: new Date().toISOString().split('T')[0],
+      timestamp: new Date().getTime(),
       category: parsedData.category,
       amount: finalAmount,
       note: parsedData.note || 'Thu chi tự động'

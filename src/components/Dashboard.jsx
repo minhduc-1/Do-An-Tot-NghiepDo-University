@@ -18,7 +18,7 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
 };
 
-export default function Dashboard({ transactions, goals, currency, onDeleteTx, monthlyBudget, user }) {
+export default function Dashboard({ transactions, goals, currency, onDeleteTx, monthlyBudget, user, moveToTrash }) {
   const expenseTransactions = transactions.filter(t => t.amount < 0);
   const incomeTransactions = transactions.filter(t => t.amount > 0);
   
@@ -168,7 +168,7 @@ export default function Dashboard({ transactions, goals, currency, onDeleteTx, m
       </div>
 
       <motion.div variants={itemVariants}>
-        <BillReminder user={user} />
+        <BillReminder user={user} moveToTrash={moveToTrash} />
       </motion.div>
 
       <motion.div variants={itemVariants} style={{ marginTop: '24px' }}>
@@ -265,7 +265,7 @@ export default function Dashboard({ transactions, goals, currency, onDeleteTx, m
                     <div>
                        <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{t.note}</div>
                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', gap: '8px', marginTop: '4px' }}>
-                         <span>{t.date}</span> • <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{t.category}</span>
+                         <span>{t.timestamp ? new Date(t.timestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : t.date}</span> • <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{t.category}</span>
                        </div>
                     </div>
                  </div>

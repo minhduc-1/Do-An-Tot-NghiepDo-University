@@ -121,7 +121,7 @@ export default function Dashboard({ transactions, goals, currency }) {
           {/* Progress Bar Ngân Sách Xịn */}
           <div style={{ marginTop: '16px' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-               <span>Đã dùng {budgetUsedPercent.toFixed(1)}% ngân sách</span>
+               <span>Đã sử dụng {budgetUsedPercent.toFixed(2)}% ngân sách tháng</span>
                <span>{formatCurrency(monthlyBudget, currency)}</span>
              </div>
              <div style={{ height: '8px', background: 'var(--border-glass)', borderRadius: '10px', overflow: 'hidden' }}>
@@ -148,7 +148,7 @@ export default function Dashboard({ transactions, goals, currency }) {
         {/* Biểu đồ Biến Động */}
         <motion.div variants={itemVariants} className="friendly-card" style={{ padding: '24px' }}>
            <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <Zap size={20} color="var(--primary)"/> Biến động Dòng tiền 7 Ngày Xu Hướng
+             <Zap size={20} color="var(--primary)"/> Phân tích Dòng tiền 7 ngày gần nhất
            </h3>
            <div style={{ height: '320px' }}>
              <ResponsiveContainer width="100%" height="100%">
@@ -177,7 +177,7 @@ export default function Dashboard({ transactions, goals, currency }) {
         {/* Biểu đồ Tròn Thẩm Mỹ */}
         <motion.div variants={itemVariants} className="friendly-card" style={{ padding: '24px' }}>
            <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <PieChart size={20} color="var(--accent)"/> Cấu Trúc Chi Tiêu
+             <PieChart size={20} color="var(--accent)"/> Cơ cấu Chi tiêu
            </h3>
            {pieData.length > 0 ? (
              <div style={{ height: '280px' }}>

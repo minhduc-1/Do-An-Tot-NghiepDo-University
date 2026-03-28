@@ -34,17 +34,17 @@ export default function SmartInsights({ transactions, goals, currency }) {
     if (dayTotal > 5000000) {
       score -= 30;
       state = 'Báo động';
-      emotion = 'FOMO / Phung phí';
-      recommendations.push("Chi tiêu lố ngân sách ngày. Hãy ngừng mở các trang TMĐT!");
+      emotion = 'Cảnh báo vung tay';
+      recommendations.push("Mức chi tiêu trong ngày vượt hạn mức an toàn. Cần siết chặt các khoản không thiết yếu!");
     } else if (dayTotal > 1000000 && isWeekend) {
       score -= 10;
       state = 'Lưu ý';
-      emotion = 'Vui vẻ quá đà';
-      recommendations.push("Cuối tuần chắp cánh cho bạn vung tiền. Giới hạn lại 50% thôi!");
+      emotion = 'Chi tiêu tự do';
+      recommendations.push("Cuối tuần có dấu hiệu tăng mạnh chi phí. Hãy kiểm soát lại ngân sách 50%!");
     } else if (noSpendStreak > 0) {
        score += 10;
-       emotion = 'Kỷ luật Thép';
-       recommendations.push(`Tuyệt vời! Bạn đang có chuỗi ${noSpendStreak} ngày không tốn một xu.`);
+       emotion = 'Kỷ luật tài chính tốt';
+       recommendations.push(`Rất tuyệt! Bạn đã duy trì được chuỗi ${noSpendStreak} ngày không phát sinh chi phí.`);
     }
 
     // Phân nhỏ danh mục
@@ -54,7 +54,7 @@ export default function SmartInsights({ transactions, goals, currency }) {
     }, {});
     
     if (categories['Ăn uống'] > 500000) {
-        recommendations.push("Phát hiện mua đồ ăn quá đà. Bạn có buồn bực gì không? Hãy tự nấu ăn để giải toả nhé.");
+        recommendations.push("Chi phí ăn uống đang vượt mức khuyến nghị. Bạn có thể xem xét tự chuẩn bị bữa ăn để tối ưu dòng tiền.");
     }
     
     if (recommendations.length === 0) recommendations.push("Tiếp tục duy trì phong độ giữ tiền đỉnh cao này!");
@@ -94,7 +94,7 @@ export default function SmartInsights({ transactions, goals, currency }) {
               
               <div style={{ background: 'var(--surface-opaque)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-light)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                  <Flame size={16} color="var(--warning)" />
-                 <span style={{ fontSize: '14px', fontWeight: '600' }}>Tâm lý hôm nay: {insight.emotion}</span>
+                 <span style={{ fontSize: '14px', fontWeight: '600' }}>Hành vi tài chính: {insight.emotion}</span>
               </div>
 
               {insight.streak > 0 && (
@@ -105,10 +105,9 @@ export default function SmartInsights({ transactions, goals, currency }) {
            </div>
         </div>
 
-        {/* Cảnh báo AI */}
         <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-light)' }}>
            <h4 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-             <ShieldCheck size={16} /> Lời khuyên Độc quyền từ AI
+             <ShieldCheck size={16} /> Nhận định từ Trợ lý Phân tích
            </h4>
            <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
              {insight.recommendations.map((rec, i) => (
@@ -124,11 +123,11 @@ export default function SmartInsights({ transactions, goals, currency }) {
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
         <div className="friendly-card" style={{ padding: '24px', border: '1px solid var(--border-light)' }}>
              <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-               <Target size={20} color="var(--primary)" /> Mục Tiêu (Goals)
+               <Target size={20} color="var(--primary)" /> Quản lý Mục tiêu Tài chính
              </h3>
              {goals.length === 0 ? (
                 <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0', fontSize: '14px', background: 'var(--bg-app)', borderRadius: '12px' }}>
-                   Tuyệt đối không có số dư ẩn! <br/> Bạn chưa thiết lập mục tiêu nào. Hãy nhấn "Cắm cờ Mục tiêu".
+                   Hệ thống chưa ghi nhận mục tiêu nào.<br/>Vui lòng chia sẻ kế hoạch bằng cách "Thiết Lập Mục Tiêu".
                 </div>
              ) : (
                 <GoalTracker goals={goals} currency={currency} />
@@ -138,12 +137,12 @@ export default function SmartInsights({ transactions, goals, currency }) {
         {/* Bản đồ Heatmap */}
         <div className="friendly-card" style={{ padding: '24px', marginTop: '24px' }}>
            <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <Zap size={20} color="var(--danger)" /> Bản Đồ Vị Trí Vung Tiền
+             <Zap size={20} color="var(--danger)" /> Bản đồ Mật độ Chi tiêu
            </h3>
            <div style={{ width: '100%', height: '180px', background: 'url(https://miro.medium.com/v2/resize:fit:1400/1*C2mZtYkU308E7g4-zN8kGQ.png) center/cover', borderRadius: '16px', border: '1px solid var(--border-light)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)' }}></div>
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--danger-bg)', padding: '12px 24px', borderRadius: '24px', color: 'var(--danger)', fontWeight: 'bold', border: '1px solid var(--danger)', backdropFilter: 'blur(4px)' }}>
-                📍 Trung tâm Mua Sắm
+                📍 Khu vực phát sinh cao điểm
               </div>
            </div>
         </div>

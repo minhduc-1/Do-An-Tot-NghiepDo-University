@@ -137,6 +137,7 @@ export default function App() {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOTP(otp);
     setTempRegData({ ...tempRegData, name, email });
+    setTempRegData({ ...tempRegData, name, email });
     setAuthMode('register_step2_otp');
 
     setTimeout(() => {
@@ -151,7 +152,7 @@ export default function App() {
     if (inputOTP === generatedOTP) {
         setAuthMode('register_step3_pwd');
     } else {
-        alert('Mã OTP không chính xác. Bạn hãy kiểm tra lại hòm thư mô phỏng nhé!');
+        alert('Mã OTP không chính xác. Vui lòng kiểm tra lại!');
     }
   };
 
@@ -241,14 +242,14 @@ export default function App() {
             <ShieldCheck size={36} />
           </div>
           
-          <h2 style={{ marginBottom: '8px', fontSize: '1.8rem', color: 'var(--text-primary)' }}>Ví Điện Tử An Toàn</h2>
+          <h2 style={{ marginBottom: '8px', fontSize: '1.8rem', color: 'var(--text-primary)' }}>Nền tảng Quản lý Tài chính</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '15px' }}>
              {lockoutTimer > 0 
-               ? `Hệ thống tạm khóa cảnh báo Hacker.` 
-               : authMode === 'login' ? 'Nhập thông tin xác thực để mở khóa hệ thống Két Sắt.'
-               : authMode === 'register_step1' ? 'Mở đường dẫn mới an toàn và hoàn toàn bảo mật.'
-               : authMode === 'register_step2_otp' ? 'Nhập mã để bảo vệ chống giả mạo danh tính.'
-               : 'Đừng dùng 12345. Mã hóa AES và SHA256 cục bộ.'}
+               ? `Tài khoản tạm khóa để bảo đảm an toàn.` 
+               : authMode === 'login' ? 'Vui lòng đăng nhập để truy cập hệ thống quản lý.'
+               : authMode === 'register_step1' ? 'Thiết lập tài khoản quản lý tài chính cá nhân mới.'
+               : authMode === 'register_step2_otp' ? 'Nhập mã xác thực để hoàn tất quá trình định danh.'
+               : 'Khởi tạo mật khẩu. Hệ thống sử dụng mã hoá bảo mật cao cấp.'}
           </p>
           
           <AnimatePresence mode="wait">
@@ -279,7 +280,7 @@ export default function App() {
                 )}
                 
                 <p style={{ marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  Chưa có khóa mã hóa? <span onClick={() => { setAuthMode('register_step1'); setLoginAttempts(0); }} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Mở ví chống trinh sát!</span>
+                  Chưa có tài khoản? <span onClick={() => { setAuthMode('register_step1'); setLoginAttempts(0); }} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Đăng ký ngay</span>
                 </p>
               </motion.form>
             )}
@@ -299,27 +300,27 @@ export default function App() {
                 </div>
 
                 <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px' }}>
-                  <MailCheck size={18} /> Định Danh 2 Bước
+                  <MailCheck size={18} /> Xác Minh Email
                 </button>
                 <p style={{ marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  Về lại ranh giới an toàn? <span onClick={() => setAuthMode('login')} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Đăng nhập</span>
+                  Đã có tài khoản? <span onClick={() => setAuthMode('login')} style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}>Đăng nhập</span>
                 </p>
               </motion.form>
             )}
 
-            {/* REGISTER STEP 2 */}
+             {/* REGISTER STEP 2 */}
             {authMode === 'register_step2_otp' && (
               <motion.form key="reg2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleRegStep2} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
                 <div style={{ padding: '12px', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: '12px', fontSize: '14px', marginBottom: '8px' }}>
-                   Giám sát lưu lượng phát hiện OTP vừa được gửi đến <b>{tempRegData.email}</b>. 
+                   Mã xác minh OTP vừa được gửi đến Email: <b>{tempRegData.email}</b>. 
                 </div>
                 <input name="otp" type="text" required placeholder="MÃ OTP 6 SỐ" maxLength={6} className="input-friendly" style={{ letterSpacing: '8px', fontSize: '20px', textAlign: 'center', fontWeight: 'bold' }} autoComplete="off" />
                 
                 <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px' }}>
-                  Xác Thực Ủy Quyền
+                  Xác Nhận OTP
                 </button>
                 <p style={{ marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  <span onClick={() => setAuthMode('register_step1')} style={{ color: 'var(--text-muted)', cursor: 'pointer' }}>Hủy bỏ quy trình</span>
+                  <span onClick={() => setAuthMode('register_step1')} style={{ color: 'var(--text-muted)', cursor: 'pointer' }}>Hủy và quay lại</span>
                 </p>
               </motion.form>
             )}
@@ -328,13 +329,13 @@ export default function App() {
             {authMode === 'register_step3_pwd' && (
               <motion.form key="reg3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleRegStep3} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
                 <div style={{ padding: '12px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '12px', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold', textAlign: 'left' }}>
-                   Bảo mật Lớp 2/2: Đã phát tín hiệu tạo Két. <br/>Mật khẩu sẽ được Băm (Hash) bởi SHA256 thay vì lưu Thô.
+                   Bảo mật lớp 2/2: Đã xác thực thành công. <br/>Vui lòng thiết lập mật khẩu bảo mật cho tài khoản của bạn.
                 </div>
-                <input name="password" type="password" required placeholder="Tạo Lõi Khóa (Tối thiểu 6 ký tự)" className="input-friendly" />
-                <input name="repassword" type="password" required placeholder="Xác nhận Trùng khớp Lõi" className="input-friendly" />
+                <input name="password" type="password" required placeholder="Tạo mật khẩu (Tối thiểu 6 ký tự)" className="input-friendly" />
+                <input name="repassword" type="password" required placeholder="Xác nhận lại mật khẩu" className="input-friendly" />
                 
                 <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: '16px', background: 'var(--success)' }}>
-                  <Lock size={18} /> Niêm Phong & Khởi Động
+                  <Lock size={18} /> Hoàn Tất Đăng Ký
                 </button>
               </motion.form>
             )}
@@ -430,13 +431,13 @@ export default function App() {
         }}>
           <div>
              <h1 style={{ fontSize: '1.6rem', color: 'var(--text-primary)' }}>
-                {activeTab === 'dashboard' && `Trạng Thái Két Quản Lý Tiền, ${user.name}! 🌤`}
-                {activeTab === 'reports' && 'Bạn đã chi tiêu thế nào nhỉ?'}
-                {activeTab === 'debts' && 'Đòi nợ tinh tế, chia tiền vui vẻ'}
-                {activeTab === 'settings' && 'Tùy chỉnh góc nhỏ của bạn'}
+                {activeTab === 'dashboard' && `Tổng quan Tài chính, ${user.name}.`}
+                {activeTab === 'reports' && 'Báo cáo Phân tích Chi tiêu'}
+                {activeTab === 'debts' && 'Quản lý Công nợ & Khoản vay'}
+                {activeTab === 'settings' && 'Cài đặt Hệ thống'}
              </h1>
              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '4px' }}>
-                Hệ thống 100% bảo mật đầu cuối, đảm bảo không Hacker nào lấy được.
+                Giám sát và kiểm soát dòng tiền cá nhân chuyên nghiệp.
              </p>
           </div>
 
@@ -447,10 +448,10 @@ export default function App() {
              {activeTab === 'dashboard' && (
                <>
                  <button onClick={() => setShowGoalForm(true)} className="btn-secondary">
-                   <Target size={18} /> Cắm cờ Mục tiêu
+                   <Target size={18} /> Thiết Lập Mục Tiêu
                  </button>
                  <button onClick={() => setShowTransactionForm(true)} className="btn-primary">
-                   + Ghi xài tiền
+                   + Thêm Giao Dịch
                  </button>
                </>
              )}

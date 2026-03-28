@@ -1,59 +1,57 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap');
 
 :root {
-  /* Tông màu Thân thiện, Sáng sủa, Hiện đại kiểu App Tài chính V5 */
-  --bg-app: #f4f7f9;
+  /* Tông màu Vintage (Sang trọng, mộc mạc, tĩnh lặng) */
+  --bg-app: #f2efe9;
   --surface-opaque: #ffffff;
-  --surface-base: #eaf1f5;
+  --surface-base: #e6e2da;
   --surface-glass: rgba(255, 255, 255, 0.7);
   
-  --primary: #0077b6; /* Blue Fintech */
-  --primary-hover: #023e8a;
-  --primary-bg: #caf0f8;
-  --accent: #219ebc; 
+  --primary: #5c7063; /* Màu Rêu (Sage Green) cổ điển */
+  --primary-hover: #46574c;
+  --primary-bg: #dde5df;
+  --accent: #c47353; /* Màu Ngói (Terracotta) */
   
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary: #3a3532;
+  --text-secondary: #6b635e;
+  --text-muted: #9a938c;
 
-  --success: #10b981;
-  --success-bg: #d1fae5;
-  --danger: #ef4444;
-  --danger-bg: #fee2e2;
-  --warning: #f59e0b;
-  --warning-bg: #fef3c7;
+  --success: #5c7063; /* Vintage Forest */
+  --success-bg: #dde5df;
+  --danger: #b54d4d; /* Muted Red */
+  --danger-bg: #f5dfdf;
+  --warning: #cc8b3c; /* Vintage Gold */
+  --warning-bg: #faefdf;
 
-  /* Bóng đổ tuyệt đẹp */
-  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 8px 16px -4px rgba(0, 119, 182, 0.05);
-  --shadow-lg: 0 12px 30px -5px rgba(0, 119, 182, 0.1);
-  --shadow-hover: 0 20px 30px -6px rgba(0, 119, 182, 0.12), 0 10px 15px -4px rgba(0, 119, 182, 0.05);
+  /* Bóng đổ mềm mại */
+  --shadow-sm: 0 2px 8px -2px rgba(58, 53, 50, 0.05);
+  --shadow-md: 0 8px 16px -4px rgba(58, 53, 50, 0.08);
+  --shadow-lg: 0 12px 30px -5px rgba(58, 53, 50, 0.12);
+  --shadow-hover: 0 20px 32px -6px rgba(92, 112, 99, 0.18), 0 12px 18px -4px rgba(92, 112, 99, 0.1);
   
-  --border-light: #e2e8f0;
-  --radius-card: 20px;
-  --radius-btn: 12px;
+  --border-light: #d6cfc5;
+  --radius-card: 22px;
+  --radius-btn: 14px;
   --radius-input: 14px;
 }
 
 [data-theme='dark'] {
-  --bg-app: #0f172a;
-  --surface-opaque: #1e293b;
-  --surface-base: #141e30;
-  --surface-glass: rgba(30, 41, 59, 0.75);
-  --primary: #48cae4;
-  --primary-hover: #00b4d8;
-  --primary-bg: rgba(72, 202, 228, 0.15);
-  --accent: #90e0ef;
+  --bg-app: #242220; /* Nền xám đen nhám (Charcoal) */
+  --surface-opaque: #302e2b;
+  --surface-base: #282623;
+  --surface-glass: rgba(48, 46, 43, 0.75);
   
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
+  --primary: #869e8d; /* Sage green bật sáng trong dark mode */
+  --primary-hover: #9db2a3;
+  --primary-bg: rgba(134, 158, 141, 0.15);
+  --accent: #dca088; /* Soft Terracotta sáng */
+  
+  --text-primary: #f0ebe2;
+  --text-secondary: #a8a098;
+  --text-muted: #78716b;
 
-  --border-light: #334155;
-  --shadow-sm: 0 4px 10px rgba(0,0,0,0.3);
-  --shadow-md: 0 8px 16px rgba(0,0,0,0.4);
-  --shadow-lg: 0 16px 32px rgba(0,0,0,0.5);
-  --shadow-hover: 0 20px 40px rgba(0, 180, 216, 0.15);
+  --border-light: #44403c;
+  --shadow-hover: 0 20px 40px rgba(134, 158, 141, 0.2);
 }
 
 * {
@@ -100,18 +98,18 @@ body {
   border-radius: var(--radius-btn);
   padding: 12px 24px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 6px 12px -2px rgba(0, 119, 182, 0.25);
+  box-shadow: 0 4px 10px -2px rgba(92, 112, 99, 0.3);
 }
 
 .btn-primary:hover {
   background: var(--primary-hover);
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 10px 20px -3px rgba(0, 119, 182, 0.35);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 12px 22px -3px rgba(92, 112, 99, 0.4);
 }
 
 .btn-secondary {
@@ -132,8 +130,8 @@ body {
 .btn-secondary:hover {
   background: var(--primary);
   color: white;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px -2px rgba(0, 119, 182, 0.25);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px -2px rgba(92, 112, 99, 0.3);
 }
 
 .btn-icon {
@@ -249,8 +247,21 @@ td {
   vertical-align: middle;
 }
 
-tr:hover td {
+tr {
+  transition: transform 0.2s, background-color 0.25s, box-shadow 0.2s;
+}
+
+tr:hover {
+  transform: translateY(-3px);
   background-color: var(--surface-base);
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+  position: relative;
+  border-radius: 12px;
+}
+
+tr:hover td {
+  border-bottom: 1px solid transparent;
 }
 
 .badge {

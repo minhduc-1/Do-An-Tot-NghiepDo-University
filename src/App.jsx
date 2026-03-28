@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CryptoJS from 'crypto-js';
-import { LayoutDashboard, Wallet, Target, PieChart, Receipt, Settings as SettingsIcon, LogOut, Moon, Sun, ShieldCheck, UserPlus, LogIn, ChevronRight, MailCheck, Lock, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Wallet, Target, PieChart, Receipt, Settings as SettingsIcon, LogOut, Moon, Sun, ShieldCheck, UserPlus, LogIn, ChevronRight, MailCheck, Lock, AlertTriangle, BookOpen, Users } from 'lucide-react';
 
 import Dashboard from './components/Dashboard';
 import TransactionForm from './components/TransactionForm';
@@ -11,6 +11,8 @@ import Reports from './components/Reports';
 import Settings from './components/Settings';
 import DebtManager from './components/DebtManager';
 import AdminDashboard from './components/AdminDashboard';
+import DailyJournal from './components/DailyJournal';
+import GroupWallet from './components/GroupWallet';
 
 import { saveData, loadData } from './services/StorageService';
 import { logAction } from './services/AuditService';
@@ -53,10 +55,17 @@ export default function App() {
   const [allTransactions, setAllTransactions] = useState(() => loadData('tx_data', []));
   const [allGoals, setAllGoals] = useState(() => loadData('goals_data', []));
   const [allDebts, setAllDebts] = useState(() => loadData('debts_data', []));
+  const [allJournals, setAllJournals] = useState(() => loadData('journals_data', []));
+  const [allGroups, setAllGroups] = useState(() => loadData('groups_data', []));
+  const [allGroupTx, setAllGroupTx] = useState(() => loadData('group_tx_data', []));
 
   useEffect(() => { saveData('tx_data', allTransactions); }, [allTransactions]);
   useEffect(() => { saveData('goals_data', allGoals); }, [allGoals]);
   useEffect(() => { saveData('debts_data', allDebts); }, [allDebts]);
+  useEffect(() => { saveData('journals_data', allJournals); }, [allJournals]);
+  useEffect(() => { saveData('groups_data', allGroups); }, [allGroups]);
+  useEffect(() => { saveData('group_tx_data', allGroupTx); }, [allGroupTx]);
+  
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
@@ -360,22 +369,25 @@ export default function App() {
   const myTransactions = allTransactions.filter(t => t.owner === user.email);
   const myGoals = allGoals.filter(g => g.owner === user.email);
   const myDebts = allDebts.filter(d => d.owner === user.email);
+  const myGroupTx = allGroupTx.filter(t => t.owner === user.email);
 
   const handleAddTx = (tx) => {
-    setAllTransactions([{ ...tx, owner: user.email }, ...allTransactions]);
+    setAllTransactions(prev => [{ ...tx, owner: user.email }, ...prev]);
   };
   const handleDeleteTx = (id) => {
     if (window.confirm("Bạn có chắc muốn xóa giao dịch này không?")) {
-      setAllTransactions(allTransactions.filter(t => t.id !== id));
+      setAllTransactions(prev => prev.filter(t => t.id !== id));
     }
   };
   const handleAddGoal = (g) => {
-    setAllGoals([...allGoals, { ...g, owner: user.email }]);
+    setAllGoals(prev => [...prev, { ...g, owner: user.email }]);
   };
 
   const renderContent = () => {
     switch(activeTab) {
       case 'dashboard': return <Dashboard transactions={myTransactions} goals={myGoals} currency={currency} onDeleteTx={handleDeleteTx} monthlyBudget={monthlyBudget} user={user} />;
+      case 'journal': return <DailyJournal user={user} currency={currency} allJournals={allJournals} setAllJournals={setAllJournals} handleAddTx={handleAddTx} />;
+      case 'group': return <GroupWallet user={user} currency={currency} allGroups={allGroups} setAllGroups={setAllGroups} allGroupTx={allGroupTx} setAllGroupTx={setAllGroupTx} />;
       case 'reports': return <Reports transactions={myTransactions} currency={currency} onDeleteTx={handleDeleteTx} />;
       case 'debts': return <DebtManager currency={currency} debts={myDebts} allDebts={allDebts} setAllDebts={setAllDebts} user={user} />;
       case 'settings': return <Settings user={user} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} updateUserProfile={updateUserProfile} monthlyBudget={monthlyBudget} setMonthlyBudget={setMonthlyBudget} />;
@@ -385,6 +397,8 @@ export default function App() {
 
   const navItems = [
     { id: 'dashboard', label: 'Trang Chủ', icon: <LayoutDashboard size={20} /> },
+    { id: 'journal', label: 'Sổ Nhật Ký', icon: <BookOpen size={20} /> },
+    { id: 'group', label: 'Quỹ Nhóm', icon: <Users size={20} /> },
     { id: 'reports', label: 'Thống Kê', icon: <PieChart size={20} /> },
     { id: 'debts', label: 'Sổ Nợ', icon: <Receipt size={20} /> },
     { id: 'settings', label: 'Cài Đặt', icon: <SettingsIcon size={20} /> },

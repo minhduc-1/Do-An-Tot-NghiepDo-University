@@ -19,8 +19,8 @@ import { saveData, loadData, initCloudSyncListener } from './services/StorageSer
 import { logAction } from './services/AuditService';
 
 const useUpdateEffect = (effect, deps) => {
-  const isInitialMount = React.useRef(true);
-  React.useEffect(() => {
+  const isInitialMount = useRef(true);
+  useEffect(() => {
     if (isInitialMount.current) {
        isInitialMount.current = false;
     } else {

@@ -4,7 +4,7 @@ import { loadData, saveData } from '../services/StorageService';
 import { 
   ShieldCheck, Trash2, Users, Activity, LogOut, LayoutDashboard, 
   Settings as SettingsIcon, Megaphone, Lock, Unlock, RotateCcw, 
-  AlertTriangle, Search, CheckCircle, XCircle 
+  AlertTriangle, Search, CheckCircle, XCircle, Database, DownloadCloud, UploadCloud 
 } from 'lucide-react';
 import CryptoJS from 'crypto-js';
 import { 
@@ -56,6 +56,56 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
        saveData('audit_logs', []);
        setLogs([]);
     }
+  };
+
+  const handleLocalBackup = () => {
+    try {
+      const backupData = {
+        users: usersDB,
+        systemCategories,
+        auditLogs: logs,
+        timestamp: new Date().toISOString()
+      };
+      const json = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SET_Backup_${new Date().getTime()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      const newLogs = [{ timestamp: new Date().toISOString(), user: 'adminwed@gmail.com', action: 'BACKUP_DB', details: 'Xuất dữ liệu toàn hệ thống' }, ...logs].slice(0, 100);
+      setLogs(newLogs);
+      saveData('audit_logs', newLogs);
+      alert('Tải xuống bản sao lưu CSDL thành công!');
+    } catch (err) {
+      alert('Lỗi xuất dữ liệu: ' + err.message);
+    }
+  };
+
+  const handleLocalRestore = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (data.users && data.systemCategories) {
+           if(window.confirm('CẢNH BÁO: Dữ liệu hiện tại sẽ bị GHI ĐÈ hoàn toàn bởi file Backup. Tiếp tục?')) {
+               saveData('usersDB', data.users);
+               saveData('system_categories', data.systemCategories);
+               if(data.auditLogs) saveData('audit_logs', data.auditLogs);
+               alert('Khôi phục thành công! Hệ thống sẽ tải lại.');
+               window.location.reload();
+           }
+        } else alert('File Backup không hợp lệ!');
+      } catch (err) {
+        alert('Lỗi đọc file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
   };
 
   // Toggle IsDeleted (Soft Delete)
@@ -188,25 +238,34 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                      <span style={{ color: 'var(--text-muted)' }}>Đồng bộ hóa trực tuyến thời gian thực (Real-time Analytics)</span>
                   </div>
                   
-                  {/* Stats Cards */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '32px' }}>
-                     <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>
-                           <Users size={18} /> LƯU LƯỢNG NGƯỜI DÙNG
+                  {/* Premium Stats Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' }}>
+                     <div className="friendly-card" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)', border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)', fontWeight: '700', fontSize: '13.5px', letterSpacing: '0.5px' }}>
+                           <div style={{ background: 'var(--primary-bg)', padding: '10px', borderRadius: '12px', color: 'var(--primary)' }}>
+                              <Users size={20} />
+                           </div>
+                           LƯU LƯỢNG NGƯỜI DÙNG
                         </div>
-                        <span style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--primary)' }}>{totalUsers}</span>
+                        <span style={{ fontSize: '3.2rem', fontWeight: '900', color: 'var(--text-primary)', lineHeight: '1' }}>{totalUsers}</span>
                      </div>
-                     <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>
-                           <Activity size={18} /> KHỐI LƯỢNG GIAO DỊCH
+                     <div className="friendly-card" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)', border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)', fontWeight: '700', fontSize: '13.5px', letterSpacing: '0.5px' }}>
+                           <div style={{ background: 'var(--success-bg)', padding: '10px', borderRadius: '12px', color: 'var(--success)' }}>
+                              <Activity size={20} />
+                           </div>
+                           KHỐI LƯỢNG GIAO DỊCH
                         </div>
-                        <span style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--success)' }}>{allTransactions.length}</span>
+                        <span style={{ fontSize: '3.2rem', fontWeight: '900', color: 'var(--text-primary)', lineHeight: '1' }}>{allTransactions.length}</span>
                      </div>
-                     <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>
-                           <ShieldCheck size={18} /> TỔNG VỐN CHU CHUYỂN
+                     <div className="friendly-card" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)', border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)', fontWeight: '700', fontSize: '13.5px', letterSpacing: '0.5px' }}>
+                           <div style={{ background: '#f3e8ff', padding: '10px', borderRadius: '12px', color: '#8b5cf6' }}>
+                              <ShieldCheck size={20} />
+                           </div>
+                           TỔNG VỐN CHU CHUYỂN
                         </div>
-                        <span style={{ fontSize: '2.5rem', fontWeight: '900', color: '#8b5cf6' }}>{(totalMoneyFlow / 1000000).toFixed(1)}Tr</span>
+                        <span style={{ fontSize: '3.2rem', fontWeight: '900', color: 'var(--text-primary)', lineHeight: '1' }}>{(totalMoneyFlow / 1000000).toFixed(1)}<span style={{fontSize: '1.5rem', marginLeft:'4px', color: 'var(--text-muted)'}}>Tr</span></span>
                      </div>
                   </div>
 
@@ -348,7 +407,7 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                      <span style={{ color: 'var(--text-muted)' }}>Mã hóa thông số giao tiếp giữa Sever và Client Node.</span>
                   </div>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '24px' }}>
                      {/* BROADCAST */}
                      <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
@@ -392,6 +451,26 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                         <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                            <input type="text" className="input-friendly" placeholder="Nhập định dạng từ khóa..." value={newCat} onChange={e => setNewCat(e.target.value)} style={{ flex: 1 }} />
                            <button onClick={handleAddCat} className="btn-secondary">Mã Hóa Định Trí</button>
+                        </div>
+                     </div>
+
+                     {/* DATABASE BACKUP */}
+                     <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                           <Database size={22} color="var(--primary)" />
+                           <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Quản Trị Cơ Sở Dữ Liệu</h3>
+                        </div>
+                        <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                           Dễ dàng trích xuất (Backup) hoặc nạp lại (Restore) toàn bộ dữ liệu hệ thống người dùng để phục vụ quá trình bảo trì hay di chuyển máy chủ dữ liệu.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'auto' }}>
+                           <button onClick={handleLocalBackup} className="btn-primary" style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                              <DownloadCloud size={16} /> Sao Lưu File Hạt Nhân (.json)
+                           </button>
+                           <label className="btn-secondary" style={{ display: 'flex', justifyContent: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                              <UploadCloud size={16} /> Nạp Dữ Liệu Khôi Phục (Restore)
+                              <input type="file" accept=".json" onChange={handleLocalRestore} style={{ display: 'none' }} />
+                           </label>
                         </div>
                      </div>
                   </div>

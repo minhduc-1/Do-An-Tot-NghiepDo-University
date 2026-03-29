@@ -15,10 +15,18 @@ import DailyJournal from './components/DailyJournal';
 import GroupWallet from './components/GroupWallet';
 import Trash from './components/Trash';
 
-import { saveData, loadData } from './services/StorageService';
+import { saveData, loadData, initCloudSyncListener } from './services/StorageService';
 import { logAction } from './services/AuditService';
 
 export default function App() {
+  const [isCloudSyncing, setIsCloudSyncing] = useState(true);
+
+  useEffect(() => {
+    initCloudSyncListener(() => {
+       setTimeout(() => setIsCloudSyncing(false), 800);
+    });
+  }, []);
+
   // DB Người dùng
   const defaultUsers = [
     { email: 'adminwed@gmail.com', password: 'admin@1119990', name: 'Giám Đốc Hệ Thống', role: 'admin' },
@@ -348,6 +356,18 @@ export default function App() {
   };
 
   // --- RENDERING ROUTER ---
+  if (isCloudSyncing) {
+     return (
+       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-opaque)', color: 'var(--text-main)', fontFamily: 'system-ui, sans-serif' }}>
+          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }} style={{ marginBottom: '24px' }}>
+             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-13.11l5.67 5.67"/></svg>
+          </motion.div>
+          <h2 style={{ fontSize: '1.3rem', marginBottom: '8px', color: 'var(--text-primary)' }}>🚀 Radar Quét Tính Toàn Vẹn</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Đang đối soát dữ liệu với Hệ thống Máy chủ Đám mây (Firebase)...</p>
+       </div>
+     );
+  }
+
   if (!user) {
     return (
       <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>

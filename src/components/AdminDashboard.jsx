@@ -16,13 +16,22 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
   // Tabs: 'dashboard', 'users', 'system', 'logs'
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState(() => loadData('audit_logs', []));
   const [searchTerm, setSearchTerm] = useState('');
   
   // System Data States
-  const [broadcastMsg, setBroadcastMsg] = useState('');
-  const [systemCategories, setSystemCategories] = useState([]);
+  const [broadcastMsg, setBroadcastMsg] = useState(() => loadData('system_broadcast', ''));
+  const [systemCategories, setSystemCategories] = useState(() => loadData('system_categories', ['Ăn uống', 'Di chuyển', 'Mua sắm', 'Sinh hoạt', 'Lương/Thưởng', 'Đầu tư']));
   const [newCat, setNewCat] = useState('');
+  const [receipts, setReceipts] = useState(() => loadData('broadcast_receipts', []));
+
+  useEffect(() => {
+    // Tự động poll theo chu kỳ để admin thấy số liệu realtime nhảy (Tùy chọn)
+    const interval = setInterval(() => {
+       setReceipts(loadData('broadcast_receipts', []));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     setLogs(loadData('audit_logs', []));
@@ -32,7 +41,12 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
 
   const saveBroadcast = () => {
     saveData('system_broadcast', broadcastMsg);
-    alert('Khởi tạo thông báo toàn hệ thống thành công!');
+    saveData('broadcast_receipts', []); // Xóa bản ghi những người đã nhận lệnh cũ
+    setReceipts([]);
+    const newLogs = [{ timestamp: new Date().toISOString(), user: 'adminwed@gmail.com', action: 'BROADCAST', details: 'Phát lệnh hệ thống mới.' }, ...logs];
+    setLogs(newLogs.slice(0, 100));
+    saveData('audit_logs', newLogs);
+    alert('Khối lệnh cảnh báo toàn cục đã được triển khai thời gian thực!');
   };
 
   const handleAddCat = () => {
@@ -273,9 +287,9 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
                      <div className="friendly-card">
                         <h3 style={{ marginBottom: '16px' }}>Thống Kê Khởi Tạo Thiết Bị Mới</h3>
-                        <div style={{ height: '360px' }}>
+                        <div style={{ height: '420px', paddingBottom: '20px' }}>
                            <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={cumulativeData} margin={{ bottom: 20 }}>
+                              <LineChart data={cumulativeData} margin={{ bottom: 30, left: 10, right: 10, top: 10 }}>
                                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
                                  <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                                  <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
@@ -287,16 +301,16 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                      </div>
                      <div className="friendly-card">
                         <h3 style={{ marginBottom: '16px' }}>Phân Biệt Tình Trạng An Ninh</h3>
-                        <div style={{ height: '360px' }}>
+                        <div style={{ height: '420px', paddingBottom: '30px' }}>
                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart margin={{ bottom: 20 }}>
-                                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={4} dataKey="value">
+                              <PieChart margin={{ bottom: 50, top: 10, left: 10, right: 10 }}>
+                                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={4} dataKey="value">
                                    {pieData.map((entry, index) => (
                                      <Cell key={`cell-${index}`} fill={entry.color} />
                                    ))}
                                  </Pie>
-                                 <Tooltip wrapperStyle={{ borderRadius: '12px' }} />
-                                 <Legend verticalAlign="bottom" height={36} wrapperStyle={{ paddingTop: "20px" }} />
+                                 <Tooltip wrapperStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-md)' }} />
+                                 <Legend verticalAlign="bottom" height={60} wrapperStyle={{ paddingTop: "30px", fontSize: '13.5px' }} />
                               </PieChart>
                            </ResponsiveContainer>
                         </div>
@@ -428,6 +442,20 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                         <button onClick={saveBroadcast} className="btn-primary" style={{ width: '100%', marginTop: 'auto' }}>
                            <AlertTriangle size={16} /> Triển Khai Kích Hoạt Khối Lệnh
                         </button>
+
+                        {broadcastMsg && (
+                           <div style={{ marginTop: '20px', background: 'var(--surface-base)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                 <strong>Tỉ lệ Users xác nhận đã tiếp thu:</strong>
+                                 <b style={{ color: receipts.length === totalUsers ? 'var(--success)' : 'var(--warning)', background: 'var(--surface-opaque)', padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--border-light)' }}>{receipts.length} / {totalUsers}</b>
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                 {receipts.length > 0 ? receipts.map((r, i) => (
+                                    <span key={i} className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '12px', padding: '6px 12px' }}>✓ {r.split('@')[0]}</span>
+                                 )) : <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>Chưa có Người dùng nào báo cáo Đã xem lệnh. Trực báo sẽ cập nhật thời gian thực...</span>}
+                              </div>
+                           </div>
+                        )}
                      </div>
 
                      {/* CATEGORY MASTER */}

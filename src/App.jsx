@@ -60,6 +60,22 @@ export default function App() {
   const [currency, setCurrency] = useState('VND'); 
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [readReceipts, setReadReceipts] = useState(() => loadData('broadcast_receipts', []));
+
+  useEffect(() => {
+    const i = setInterval(() => { setReadReceipts(loadData('broadcast_receipts', [])); }, 5000);
+    return () => clearInterval(i);
+  }, []);
+
+  const hasRead = user ? readReceipts.includes(user.email) : false;
+  const handleMarkRead = () => {
+      const current = loadData('broadcast_receipts', []);
+      if (user && !current.includes(user.email)) {
+          const updated = [...current, user.email];
+          saveData('broadcast_receipts', updated);
+          setReadReceipts(updated);
+      }
+  };
   const [monthlyBudget, setMonthlyBudget] = useState(() => Number(localStorage.getItem('budget_' + (user?.email || ''))) || 20000000);
 
   useEffect(() => {
@@ -712,10 +728,10 @@ export default function App() {
              </button>
              
              <div style={{ position: 'relative' }}>
-                <button onClick={() => setShowNotifications(!showNotifications)} className="btn-icon" style={{ borderRadius: '14px', width: '44px', height: '44px', borderColor: broadcastMessage ? 'var(--danger)' : '' }} title="Thông báo hệ thống">
-                  <Bell size={20} color={broadcastMessage ? 'var(--danger)' : 'currentColor'} />
+                <button onClick={() => setShowNotifications(!showNotifications)} className="btn-icon" style={{ borderRadius: '14px', width: '44px', height: '44px', borderColor: (broadcastMessage && !hasRead) ? 'var(--danger)' : '' }} title="Thông báo hệ thống">
+                  <Bell size={20} color={(broadcastMessage && !hasRead) ? 'var(--danger)' : 'currentColor'} />
                 </button>
-                {broadcastMessage && (
+                {broadcastMessage && !hasRead && (
                    <span style={{ position: 'absolute', top: 0, right: 0, width: 12, height: 12, borderRadius: '50%', background: 'var(--danger)', border: '2px solid var(--surface-opaque)' }}></span>
                 )}
                 
@@ -724,17 +740,29 @@ export default function App() {
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                       style={{ position: 'absolute', top: '100%', right: 0, marginTop: '12px', width: '360px', background: 'var(--surface-opaque)', borderRadius: '16px', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-lg)', zIndex: 100, overflow: 'hidden' }}
                     >
-                      <div style={{ padding: '16px', background: 'var(--primary-bg)', color: 'var(--primary)', fontWeight: 'bold', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between' }}>
+                      <div style={{ padding: '16px', background: 'var(--primary-bg)', color: 'var(--primary)', fontWeight: 'bold', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                          <span>Hộp Thư Hệ Thống</span>
-                         <span style={{ fontSize: '13px', background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '12px' }}>{broadcastMessage ? '1' : '0'} mới</span>
+                         {broadcastMessage && !hasRead && (
+                            <span style={{ fontSize: '11px', background: 'var(--danger)', color: 'white', padding: '4px 8px', borderRadius: '12px' }}>1 MỚI</span>
+                         )}
                       </div>
-                      <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                      <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
                          {broadcastMessage ? (
-                           <div style={{ padding: '16px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: '12px', background: 'var(--danger-bg)' }}>
-                              <div style={{ color: 'var(--danger)', background: 'white', padding: '8px', borderRadius: '50%', height: 'fit-content' }}><AlertTriangle size={18}/></div>
-                              <div>
-                                 <strong style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: 'var(--danger)' }}>BÁO ĐỘNG TỪ GIÁM ĐỐC</strong>
-                                 <p style={{ fontSize: '13.5px', color: 'var(--danger)', margin: 0, opacity: 0.9 }}>{broadcastMessage}</p>
+                           <div style={{ padding: '16px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: '12px', background: hasRead ? 'var(--surface-opaque)' : 'var(--danger-bg)' }}>
+                              <div style={{ color: hasRead ? 'var(--text-muted)' : 'var(--danger)', background: hasRead ? 'var(--bg-app)' : 'white', padding: '10px', borderRadius: '50%', height: 'fit-content' }}><AlertTriangle size={18}/></div>
+                              <div style={{ flex: 1 }}>
+                                 <strong style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: hasRead ? 'var(--text-primary)' : 'var(--danger)' }}>BÁO ĐỘNG TỪ GIÁM ĐỐC</strong>
+                                 <p style={{ fontSize: '13.5px', color: hasRead ? 'var(--text-secondary)' : 'var(--danger)', margin: 0, opacity: 0.9, lineHeight: 1.5 }}>{broadcastMessage}</p>
+                                 
+                                 {!hasRead ? (
+                                    <button onClick={handleMarkRead} className="btn-primary" style={{ marginTop: '16px', padding: '8px 16px', fontSize: '12.5px', borderRadius: '8px', width: '100%', background: 'var(--danger)' }}>
+                                       Xác Nhận Đã Đọc Lệnh Này
+                                    </button>
+                                 ) : (
+                                    <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--success)', fontWeight: 'bold', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                       <span style={{width: 16, height: 16, background: 'var(--success-bg)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>✓</span> Lệnh đã được thực thi
+                                    </div>
+                                 )}
                               </div>
                            </div>
                          ) : (
@@ -743,10 +771,10 @@ export default function App() {
                            </div>
                          )}
                          <div style={{ padding: '16px', display: 'flex', gap: '12px' }}>
-                            <div style={{ color: 'var(--primary)', background: 'var(--primary-bg)', padding: '8px', borderRadius: '50%', height: 'fit-content' }}><ShieldCheck size={18}/></div>
+                            <div style={{ color: 'var(--primary)', background: 'var(--primary-bg)', padding: '10px', borderRadius: '50%', height: 'fit-content' }}><ShieldCheck size={18}/></div>
                             <div>
-                               <strong style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Bảo mật an toàn</strong>
-                               <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', margin: 0 }}>Hệ thống đang được mã hóa đầu cuối phân đoạn dữ liệu cục bộ.</p>
+                               <strong style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Bảo mật an toàn 2 Tầng</strong>
+                               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>Hệ thống đang được mã hóa đầu cuối phân đoạn dữ liệu cục bộ.</p>
                             </div>
                          </div>
                       </div>

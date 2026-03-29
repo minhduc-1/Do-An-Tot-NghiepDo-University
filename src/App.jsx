@@ -155,14 +155,14 @@ export default function App() {
        }
        
        if (account.isDeleted) {
-          return alert('❌ TÀI KHOẢN CỦA BẠN ĐÃ BỊ TỊCH THU\n\nTài khoản này đã bị Giám Đốc xóa hoặc vô hiệu hóa. Vui lòng liên hệ bộ phận hỗ trợ để khôi phục.');
+          return alert('❌ TỪ CHỐI TRUY CẬP\n\nTài khoản của bạn đã bị vô hiệu hóa bởi Quản Trị Hệ Thống. Vui lòng liên hệ bộ phận hỗ trợ kỹ thuật để biết thêm chi tiết.');
        }
        if (account.isLocked) {
-          return alert('🔒 TÀI KHOẢN TẠM KHÓA\n\nBạn đang chịu án phạt tạm giam từ Quản Trị Hệ Thống. Hãy đợi hệ thống mở khóa.');
+          return alert('🔒 KẾT NỐI BỊ ĐÌNH CHỈ\n\nTài khoản hiện đang trong trạng thái tạm khóa. Bạn không được phép tiếp tục truy cập vào phân hệ này.');
        }
 
        if (account.isWarned) {
-          alert("⚠️ HỆ THỐNG CẢNH BÁO TÀI KHOẢN CỦA BẠN!\n\nTài khoản của bạn đã bị Giám Đốc Hệ Thống cảnh cáo vì phát hiện giao dịch hoặc hành vi có dấu hiệu bất thường.\nBạn vẫn có thể tiếp tục sử dụng, nhưng vui lòng cẩn trọng. Nếu tái phạm, tài khoản sẽ bị xoá vĩnh viễn.");
+          alert("⚠️ THÔNG BÁO TỪ QUẢN TRỊ HỆ THỐNG\n\nTài khoản của bạn đã bị gắn cờ cảnh báo do phát hiện các phiên giao dịch hoặc hành vi có dấu hiệu bất thường.\nVui lòng tuân thủ quy tắc sử dụng. Sự tái phạm có thể dẫn đến vô hiệu hóa tài khoản vĩnh viễn.");
        }
 
        const nowStr = new Date().toLocaleString('vi-VN');
@@ -559,7 +559,6 @@ export default function App() {
   const myTransactions = allTransactions.filter(t => t.owner === user.email);
   const myGoals = allGoals.filter(g => g.owner === user.email);
   const myDebts = allDebts.filter(d => d.owner === user.email);
-  const myGroupTx = allGroupTx.filter(t => t.owner === user.email);
 
   const handleAddTx = (tx) => {
     // Luôn bọc thời gian chuẩn xác

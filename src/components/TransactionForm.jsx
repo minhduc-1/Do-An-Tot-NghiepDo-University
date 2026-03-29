@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Send, Tags } from 'lucide-react';
+import { X, Sparkles, Send, Tags, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import Tesseract from 'tesseract.js';
 import { loadData } from '../services/StorageService';
 
@@ -8,8 +8,8 @@ export default function TransactionForm({ onClose, onAdd }) {
   const [smartInput, setSmartInput] = useState('');
   const [parsedData, setParsedData] = useState({ category: 'Khác', amount: '', note: '' });
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [useAI, setUseAI] = useState(false); // Toggle scan receipt
   const [sysCategories, setSysCategories] = useState([]);
+  const [txType, setTxType] = useState('expense');
 
   useEffect(() => {
      setSysCategories(loadData('system_categories', ['Ăn uống', 'Di chuyển', 'Mua sắm', 'Sinh hoạt', 'Lương/Thưởng']));
@@ -60,8 +60,8 @@ export default function TransactionForm({ onClose, onAdd }) {
       return;
     }
     
-    // Thu hay Chi? (Thu: Lương/Thưởng, Bán hàng)
-    const isIncome = parsedData.category === 'Lương/Thưởng' || parsedData.note.toLowerCase().includes('lương');
+    // Thu hay Chi? Phụ thuộc vào Toggle (Chi Tiền ra là số Âm, Nhận tiền vào là số Dương)
+    const isIncome = txType === 'income';
     const finalAmount = isIncome ? Math.abs(parsedData.amount) : -Math.abs(parsedData.amount);
 
     onAdd({
@@ -115,6 +115,15 @@ export default function TransactionForm({ onClose, onAdd }) {
           Chỉ cần gõ theo thói quen tự nhiên. AI sẽ tự động phân loại. <br/> 
           <i>Ví dụ: "Ăn bít tết 250k" hoặc "Mẹ gửi 5tr"</i>
         </p>
+
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+           <button type="button" onClick={() => setTxType('expense')} className="btn-secondary" style={{ flex: 1, padding: '12px', background: txType === 'expense' ? 'var(--danger-bg)' : 'transparent', color: txType === 'expense' ? 'var(--danger)' : 'var(--text-muted)', border: txType === 'expense' ? '1px solid var(--danger)' : '1px solid var(--border-light)', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+              <ArrowUpRight size={18}/> Chi Tiền
+           </button>
+           <button type="button" onClick={() => setTxType('income')} className="btn-secondary" style={{ flex: 1, padding: '12px', background: txType === 'income' ? 'var(--success-bg)' : 'transparent', color: txType === 'income' ? 'var(--success)' : 'var(--text-muted)', border: txType === 'income' ? '1px solid var(--success)' : '1px solid var(--border-light)', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+              <ArrowDownRight size={18}/> Nhận Tiền
+           </button>
+        </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           

@@ -27,12 +27,12 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
   useEffect(() => {
     setLogs(loadData('audit_logs', []));
     setBroadcastMsg(loadData('system_broadcast', ''));
-    setSystemCategories(loadData('system_categories', ['Ăn uống', 'Di chuyển', 'Mua sắm', 'Lương', 'Đầu tư']));
+    setSystemCategories(loadData('system_categories', ['Ăn uống', 'Di chuyển', 'Mua sắm', 'Sinh hoạt', 'Lương/Thưởng', 'Đầu tư']));
   }, []);
 
   const saveBroadcast = () => {
     saveData('system_broadcast', broadcastMsg);
-    alert('Đã phát thanh thông báo thành công đến toàn bộ thành viên!');
+    alert('Khởi tạo thông báo toàn hệ thống thành công!');
   };
 
   const handleAddCat = () => {
@@ -52,7 +52,7 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
   // ---------------- ACTION HANDLERS ---------------- //
 
   const handleClearLogs = () => {
-    if(window.confirm('Giám đốc có chắc muốn xoá sạch lịch sử hoạt động không? Tài liệu mật sẽ biến mất vĩnh viễn!')) {
+    if(window.confirm('Xác nhận: Xóa toàn bộ Nhật ký Kiểm toán (Audit Logs)? Hành động này không thể hoàn tác.')) {
        saveData('audit_logs', []);
        setLogs([]);
     }
@@ -60,9 +60,9 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
 
   // Toggle IsDeleted (Soft Delete)
   const handleToggleDelete = (email, currentState) => {
-    if (email === 'adminwed@gmail.com') return alert('CẢNH BÁO: Giám đốc không thể tự sát (xoá tài khoản của mình)!');
-    const action = currentState ? 'KHÔI PHỤC TÀI KHOẢN' : 'TỬ HÌNH TÀI KHOẢN (ĐƯA VÀO RÁC)';
-    if (window.confirm(`XÁC NHẬN: Bạn muốn ${action} ${email}?`)) {
+    if (email === 'adminwed@gmail.com') return alert('Lỗi truy cập: Không thể vô hiệu hóa tài khoản Quản trị cấp cao.');
+    const action = currentState ? 'KHÔI PHỤC HOẠT ĐỘNG' : 'VÔ HIỆU HÓA TÀI KHOẢN';
+    if (window.confirm(`XÁC NHẬN: Bắt đầu tiến trình ${action} đối với email: ${email}?`)) {
         const newDB = usersDB.map(u => u.email === email ? { ...u, isDeleted: !currentState } : u);
         setUsersDB(newDB);
     }
@@ -70,9 +70,9 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
 
   // Toggle IsLocked (Khóa)
   const handleToggleLock = (email, currentState) => {
-    if (email === 'adminwed@gmail.com') return alert('CẢNH BÁO: Giám đốc không thể tự nhốt mình!');
-    const action = currentState ? 'MỞ KHÓA' : 'TẠM GIAM';
-    if (window.confirm(`XÁC NHẬN: Bạn muốn ${action} tài khoản ${email}?`)) {
+    if (email === 'adminwed@gmail.com') return alert('Lỗi truy cập: Không thể khóa định danh Quản trị cấp cao.');
+    const action = currentState ? 'MỞ KHÓA TRUY CẬP' : 'TẠM KHÓA TRUY CẬP';
+    if (window.confirm(`XÁC NHẬN: Bắt đầu tiến trình ${action} đối với email: ${email}?`)) {
         const newDB = usersDB.map(u => u.email === email ? { ...u, isLocked: !currentState } : u);
         setUsersDB(newDB);
     }
@@ -80,9 +80,9 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
 
   // Toggle Warning (Cảnh báo mờ ám)
   const handleToggleWarn = (email, currentState) => {
-    if (email === 'adminwed@gmail.com') return alert('Không thể thao tác lên chính mình!');
-    const actionName = currentState ? 'GỠ CỜ CẢNH CÁO' : 'CẮM CỜ PHẠT';
-    if (window.confirm(`XÁC NHẬN: ${actionName} tài khoản ${email}?`)) {
+    if (email === 'adminwed@gmail.com') return alert('Lỗi hệ thống: Tham số không hợp lệ.');
+    const actionName = currentState ? 'GỠ CẢNH CÁO VI PHẠM' : 'ÁP DỤNG CẢNH CÁO TÀI KHOẢN';
+    if (window.confirm(`XÁC NHẬN: ${actionName} đối với email: ${email}?`)) {
         const newDB = usersDB.map(u => u.email === email ? { ...u, isWarned: !currentState } : u);
         setUsersDB(newDB);
     }
@@ -90,12 +90,12 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
 
   // Reset Password khẩn cấp
   const handleResetPassword = (email) => {
-    if (email === 'adminwed@gmail.com') return alert('Không thể tự Reset Password bằng đường này!');
-    if (window.confirm(`QUYỀN SINH SÁT: Bạn muốn đặt lại mật khẩu của ${email} thành "123456"?`)) {
+    if (email === 'adminwed@gmail.com') return alert('Lỗi thao tác: Không thể đặt lại mật khẩu Quản trị nguyên thủy qua giao diện này.');
+    if (window.confirm(`QUYỀN QUẢN TRỊ 1.0: Đặt lại mật khẩu mặc định (123456) cho tài khoản: ${email}?`)) {
         const securePwd = CryptoJS.SHA256("123456").toString();
         const newDB = usersDB.map(u => u.email === email ? { ...u, password: securePwd } : u);
         setUsersDB(newDB);
-        alert(`Thành công! Mật khẩu của ${email} đã trở về: 123456`);
+        alert(`Thành công! Mật khẩu cho tài khoản ${email} đã trở về thiết lập mặc định: 123456`);
     }
   };
 
@@ -123,18 +123,18 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
   }, {});
   const lineChartData = Object.keys(usersByDate).map(date => ({ date, Users: usersByDate[date] })).sort((a,b) => a.date.localeCompare(b.date));
 
-  // Cumulative data for Line Chart (thể hiện sự tăng trưởng tổng dần)
+  // Cumulative data for Line Chart
   let cumulativeCount = 0;
   const cumulativeData = lineChartData.map(item => {
     cumulativeCount += item.Users;
-    return { date: item.date, 'Tổng User': cumulativeCount };
+    return { date: item.date, 'Tổng Người Dùng': cumulativeCount };
   });
 
   // Pie Chart Data
   const pieData = [
-     { name: 'Sạch Sẽ', value: activeUsers, color: '#10b981' }, 
-     { name: 'Trong Tầm Ngắm', value: lockedUsers, color: '#f59e0b' },
-     { name: 'Đã Bị Tiêu Diệt', value: deletedUsers, color: '#ef4444' }
+     { name: 'Hoạt Động Bình Thường', value: activeUsers, color: '#10b981' }, 
+     { name: 'Bị Khóa / Cảnh Cáo', value: lockedUsers, color: '#f59e0b' },
+     { name: 'Đã Vô Hiệu Hóa', value: deletedUsers, color: '#ef4444' }
   ];
 
   const filteredUsers = usersDB.filter(u => 
@@ -152,26 +152,26 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                <ShieldCheck size={28} color="var(--primary)" />
             </div>
             <div>
-               <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: '900', color: 'var(--primary)' }}>S. KH</h2>
-               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>PHÂN KÌ QUẢN TRỊ V2</span>
+               <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: '900', color: 'var(--primary)' }}>TRUNG TÂM</h2>
+               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>QUẢN LÝ HỆ THỐNG V2</span>
             </div>
           </div>
 
           <button onClick={() => setActiveTab('dashboard')} className={activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'} style={{ justifyContent: 'flex-start', border: activeTab !== 'dashboard' && 'none' }}>
-             <LayoutDashboard size={18} /> Tổng Quan
+             <LayoutDashboard size={18} /> Bảng Điều Khiển
           </button>
           <button onClick={() => setActiveTab('users')} className={activeTab === 'users' ? 'btn-primary' : 'btn-secondary'} style={{ justifyContent: 'flex-start', border: activeTab !== 'users' && 'none' }}>
-             <Users size={18} /> Quản Lý Dân Cư
+             <Users size={18} /> Quản Trị Người Dùng
           </button>
           <button onClick={() => setActiveTab('system')} className={activeTab === 'system' ? 'btn-primary' : 'btn-secondary'} style={{ justifyContent: 'flex-start', border: activeTab !== 'system' && 'none' }}>
-             <SettingsIcon size={18} /> Cấu Hình / Phát Loa
+             <SettingsIcon size={18} /> Thiết Lập Cơ Sở
           </button>
           <button onClick={() => setActiveTab('logs')} className={activeTab === 'logs' ? 'btn-primary' : 'btn-secondary'} style={{ justifyContent: 'flex-start', border: activeTab !== 'logs' && 'none' }}>
-             <Activity size={18} /> Camera Máy Chủ
+             <Activity size={18} /> Kiểm Toán Sự Kiện
           </button>
           
           <button onClick={onLogout} className="btn-secondary" style={{ marginTop: 'auto', color: 'var(--danger)', background: 'var(--danger-bg)', border: '1px solid var(--danger)' }}>
-             <LogOut size={18} /> Đăng Xuất An Toàn
+             <LogOut size={18} /> Đăng Hiện Vị Trí
           </button>
        </aside>
 
@@ -184,27 +184,27 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
              {activeTab === 'dashboard' && (
                <motion.div key="dashboard" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                   <div style={{ marginBottom: '32px' }}>
-                     <h1 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', margin: 0 }}>Báo cáo Tổng Quan Hệ Thống</h1>
-                     <span style={{ color: 'var(--text-muted)' }}>Cập nhật theo thời gian thực (Real-time Simulation)</span>
+                     <h1 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', margin: 0 }}>Báo Cáo Hoạt Động Cốt Lõi</h1>
+                     <span style={{ color: 'var(--text-muted)' }}>Đồng bộ hóa trực tuyến thời gian thực (Real-time Analytics)</span>
                   </div>
                   
                   {/* Stats Cards */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '32px' }}>
                      <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>
-                           <Users size={18} /> TỔNG CƯ DÂN
+                           <Users size={18} /> LƯU LƯỢNG NGƯỜI DÙNG
                         </div>
                         <span style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--primary)' }}>{totalUsers}</span>
                      </div>
                      <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>
-                           <Activity size={18} /> LƯU LƯỢNG GIAO DỊCH
+                           <Activity size={18} /> KHỐI LƯỢNG GIAO DỊCH
                         </div>
                         <span style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--success)' }}>{allTransactions.length}</span>
                      </div>
                      <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>
-                           <ShieldCheck size={18} /> GDP HỆ THỐNG
+                           <ShieldCheck size={18} /> TỔNG VỐN CHU CHUYỂN
                         </div>
                         <span style={{ fontSize: '2.5rem', fontWeight: '900', color: '#8b5cf6' }}>{(totalMoneyFlow / 1000000).toFixed(1)}Tr</span>
                      </div>
@@ -213,31 +213,31 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                   {/* Charts */}
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
                      <div className="friendly-card">
-                        <h3 style={{ marginBottom: '16px' }}>Tăng Trưởng Hệ Sinh Thái Đăng Ký</h3>
-                        <div style={{ height: '300px' }}>
+                        <h3 style={{ marginBottom: '16px' }}>Thống Kê Khởi Tạo Thiết Bị Mới</h3>
+                        <div style={{ height: '360px' }}>
                            <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={cumulativeData}>
+                              <LineChart data={cumulativeData} margin={{ bottom: 20 }}>
                                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
                                  <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                                  <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                                  <Tooltip wrapperStyle={{ borderRadius: '12px' }} />
-                                 <Line type="monotone" dataKey="Tổng User" stroke="var(--primary)" strokeWidth={4} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                                 <Line type="monotone" dataKey="Tổng Người Dùng" stroke="var(--primary)" strokeWidth={4} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                               </LineChart>
                            </ResponsiveContainer>
                         </div>
                      </div>
                      <div className="friendly-card">
-                        <h3 style={{ marginBottom: '16px' }}>Thống Kê An Cư Dân</h3>
-                        <div style={{ height: '300px' }}>
+                        <h3 style={{ marginBottom: '16px' }}>Phân Biệt Tình Trạng An Ninh</h3>
+                        <div style={{ height: '360px' }}>
                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
+                              <PieChart margin={{ bottom: 20 }}>
                                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={4} dataKey="value">
                                    {pieData.map((entry, index) => (
                                      <Cell key={`cell-${index}`} fill={entry.color} />
                                    ))}
                                  </Pie>
                                  <Tooltip wrapperStyle={{ borderRadius: '12px' }} />
-                                 <Legend verticalAlign="bottom" height={36}/>
+                                 <Legend verticalAlign="bottom" height={36} wrapperStyle={{ paddingTop: "20px" }} />
                               </PieChart>
                            </ResponsiveContainer>
                         </div>
@@ -251,15 +251,15 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                <motion.div key="users" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                      <div>
-                       <h1 style={{ margin: 0 }}>Quản Trị Nhân Sự Cấp Cao</h1>
-                       <span style={{ color: 'var(--text-muted)' }}>Điều phối Quyền lực Sinh, Sát, Tù, Khóa dành cho công dân.</span>
+                       <h1 style={{ margin: 0 }}>Kiểm Soát Quyền Truy Cập</h1>
+                       <span style={{ color: 'var(--text-muted)' }}>Công cụ Vô hiệu hóa, Cảnh cáo và Điều phối an ninh liên quan tới dữ liệu định danh.</span>
                      </div>
                      <div style={{ display: 'flex', gap: '12px', width: '320px' }}>
                         <div className="input-friendly" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'var(--surface-opaque)' }}>
                            <Search size={16} color="var(--text-muted)" />
                            <input 
                              type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                             placeholder="Truy vấn Email / Tên..."
+                             placeholder="Tra cứu Định danh / Tên / Email..."
                              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '100%' }}
                            />
                         </div>
@@ -270,10 +270,10 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                     <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
                       <thead style={{ background: 'var(--primary-bg)' }}>
                         <tr>
-                          <th style={{ padding: '20px 24px', color: 'var(--primary)', fontWeight: 'bold' }}>Định Danh Công Dân</th>
-                          <th style={{ padding: '20px 24px', color: 'var(--primary)', fontWeight: 'bold' }}>Thành Tích / Ngày Sinh</th>
-                          <th style={{ padding: '20px 24px', color: 'var(--primary)', fontWeight: 'bold' }}>Hồ Sơ (Giao Dịch)</th>
-                          <th style={{ padding: '20px 24px', color: 'var(--primary)', fontWeight: 'bold', textAlign: 'right' }}>Quyền Trượng (Thao Tác)</th>
+                          <th style={{ padding: '20px 24px', color: 'var(--primary)', fontWeight: 'bold' }}>Thông Tin Người Dùng</th>
+                          <th style={{ padding: '20px 24px', color: 'var(--primary)', fontWeight: 'bold' }}>Mã Trạng Thái Mạng</th>
+                          <th style={{ padding: '20px 24px', color: 'var(--primary)', fontWeight: 'bold' }}>Mức Độ Giao Dịch</th>
+                          <th style={{ padding: '20px 24px', color: 'var(--primary)', fontWeight: 'bold', textAlign: 'right' }}>Thi hành Lệnh Tác Nghiệp</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -301,33 +301,33 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                             </td>
                             {/* CỘT 2: TRẠNG THÁI */}
                             <td style={{ padding: '20px 24px' }}>
-                               {u.role === 'admin' ? <span className="badge" style={{background: 'var(--primary)', color: 'white'}}>Giám Đốc Tối Cao</span> : 
-                                u.isDeleted ? <span className="badge" style={{background: 'var(--text-muted)', color: 'white'}}>Đã Bị Trảm (Xóa)</span> :
-                                u.isLocked ? <span className="badge warning">Tạm Giam</span> :
-                                u.isWarned ? <span className="badge danger">Cờ Suy Thoái</span> :
-                                <span className="badge success">Công Dân Tốt</span>}
-                               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>Tạo lúc: <b>{u.createdAt?.substring(0,10)}</b></div>
-                               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Vào cuối: <b>{u.lastActive?.substring(0,10) || 'Unknown'}</b></div>
+                               {u.role === 'admin' ? <span className="badge" style={{background: 'var(--primary)', color: 'white'}}>Quyền Quản Trị Hệ Thống</span> : 
+                                u.isDeleted ? <span className="badge" style={{background: 'var(--text-muted)', color: 'white'}}>Quyền Truất Phế Vĩnh Sự</span> :
+                                u.isLocked ? <span className="badge warning">Trong Trạng Thái Gián Đoạn</span> :
+                                u.isWarned ? <span className="badge danger">Mức Độ Cảnh Cáo Nghiệp Vụ</span> :
+                                <span className="badge success">Bình Thường Tại Trạm</span>}
+                               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>Xác lập lúc: <b>{u.createdAt?.substring(0,10)}</b></div>
+                               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Hoạt động cuối: <b>{u.lastActive?.substring(0,10) || 'Dữ liệu không hoàn chỉnh'}</b></div>
                             </td>
                             {/* CỘT 3: STATS */}
                             <td style={{ padding: '20px 24px' }}>
-                               <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{stats.txCount} Thu/Chi</span>
-                               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Dòng xuyển: <b>{stats.totalAmount.toLocaleString('vi-VN')} đ</b></div>
-                               {stats.hasIrregular && !u.isDeleted && <div style={{ fontSize: '11px', color: 'var(--danger)', marginTop: '4px', fontWeight: 'bold' }}>⚠️ Có giao dịch &gt; 100Tr</div>}
+                               <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{stats.txCount} bản ghi phát sinh</span>
+                               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Dung lượng: <b>{stats.totalAmount.toLocaleString('vi-VN')} đ</b></div>
+                               {stats.hasIrregular && !u.isDeleted && <div style={{ fontSize: '11px', color: 'var(--danger)', marginTop: '4px', fontWeight: 'bold' }}>⚠️ Tệp Cảnh Báo: Chứa lượt dao động tài chính trên 100Tr</div>}
                             </td>
                             {/* CỘT 4: ACTIONS */}
                             <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                                 <button onClick={() => handleResetPassword(u.email)} disabled={u.role === 'admin' || u.isDeleted} className="btn-secondary" style={{ padding: '6px', width: '32px', height: '32px', borderColor: 'var(--border-light)', color: 'var(--primary)' }} title="Tẩy Mật Khẩu (123456)">
+                                 <button onClick={() => handleResetPassword(u.email)} disabled={u.role === 'admin' || u.isDeleted} className="btn-secondary" style={{ padding: '6px', width: '32px', height: '32px', borderColor: 'var(--border-light)', color: 'var(--primary)' }} title="Ghi Đè Chuỗi Khóa Bảo Mật Về Mặc Định">
                                     <RotateCcw size={14} />
                                  </button>
-                                 <button onClick={() => handleToggleWarn(u.email, u.isWarned)} disabled={u.role === 'admin' || u.isDeleted} className="btn-secondary" style={{ padding: '6px', width: '32px', height: '32px', borderColor: 'var(--border-light)', color: u.isWarned ? 'var(--text-muted)' : 'var(--danger)' }} title={u.isWarned ? 'Gỡ Cờ' : 'Cắm Cờ Phạt'}>
+                                 <button onClick={() => handleToggleWarn(u.email, u.isWarned)} disabled={u.role === 'admin' || u.isDeleted} className="btn-secondary" style={{ padding: '6px', width: '32px', height: '32px', borderColor: 'var(--border-light)', color: u.isWarned ? 'var(--text-muted)' : 'var(--danger)' }} title={u.isWarned ? 'Hủy Bỏ Điều Hành Cảnh Cáo' : 'Đánh Thẻ Áp Đặt Cảnh Cáo Giao Dịch'}>
                                     <AlertTriangle size={14} />
                                  </button>
-                                 <button onClick={() => handleToggleLock(u.email, u.isLocked)} disabled={u.role === 'admin' || u.isDeleted} className="btn-error" style={{ padding: '6px', width: '32px', height: '32px', borderColor: 'var(--border-light)', background: u.isLocked ? 'var(--warning-bg)' : 'transparent', color: 'var(--warning)' }} title={u.isLocked ? "Ân Xá (Mở Khóa)" : "Bỏ Tù (Tạm Khóa)"}>
+                                 <button onClick={() => handleToggleLock(u.email, u.isLocked)} disabled={u.role === 'admin' || u.isDeleted} className="btn-error" style={{ padding: '6px', width: '32px', height: '32px', borderColor: 'var(--border-light)', background: u.isLocked ? 'var(--warning-bg)' : 'transparent', color: 'var(--warning)' }} title={u.isLocked ? "Cấp Phép Lại Cổng Truy Cập" : "Đình Chỉ Liên Lạc Vào Trạm"}>
                                     {u.isLocked ? <Unlock size={14}/> : <Lock size={14} />}
                                  </button>
-                                 <button onClick={() => handleToggleDelete(u.email, u.isDeleted)} disabled={u.role === 'admin'} className="btn-icon" style={{ padding: '6px', width: '32px', height: '32px', borderColor: 'transparent', background: u.isDeleted ? 'var(--success-bg)' : 'var(--danger-bg)', color: u.isDeleted ? 'var(--success)' : 'var(--danger)' }} title={u.isDeleted ? "Hồi Sinh" : "Tử Hình"}>
+                                 <button onClick={() => handleToggleDelete(u.email, u.isDeleted)} disabled={u.role === 'admin'} className="btn-icon" style={{ padding: '6px', width: '32px', height: '32px', borderColor: 'transparent', background: u.isDeleted ? 'var(--success-bg)' : 'var(--danger-bg)', color: u.isDeleted ? 'var(--success)' : 'var(--danger)' }} title={u.isDeleted ? "Hồi Sinh Đặc Quyền Database" : "Tuyệt Đối Vô Hiệu Hóa Từ Gốc"}>
                                     {u.isDeleted ? <CheckCircle size={14} /> : <Trash2 size={14} />}
                                  </button>
                                </div>
@@ -344,8 +344,8 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
              {activeTab === 'system' && (
                <motion.div key="system" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                   <div style={{ marginBottom: '32px' }}>
-                     <h1 style={{ margin: 0 }}>Trung Tâm Hệ Thống</h1>
-                     <span style={{ color: 'var(--text-muted)' }}>Cấu hình những thứ cốt lõi và truyền tin.</span>
+                     <h1 style={{ margin: 0 }}>Thiết Lập Khối Hạ Tầng</h1>
+                     <span style={{ color: 'var(--text-muted)' }}>Mã hóa thông số giao tiếp giữa Sever và Client Node.</span>
                   </div>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
@@ -353,21 +353,21 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                      <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                            <Megaphone size={22} color="var(--primary)" />
-                           <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Loa Phát Thanh Toàn Cầu</h3>
+                           <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Phát Lệnh Thông Báo Tập Trung</h3>
                         </div>
                         <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                           Điều khiển thiết bị của mọi công dân. Tin phát thanh này sẽ treo áp sát trên đỉnh App của tất cả người dùng khi họ Đăng nhập. (Ghi rỗng để tắt Loa).
+                           Dữ liệu này sẽ đè trực tiếp lên Topbar của toàn thể các thiết bị kết nối. Cảnh báo mang mức độ Ưu Tiên Tuyệt Đối. Để khoảng trống nếu muốn kết thúc phiên cảnh báo.
                         </p>
                         <textarea 
                            className="input-friendly" 
-                           placeholder="Ví dụ: Đêm nay 22h bảo trì Server nhé các cháu..."
+                           placeholder="Văn bản đính kèm bắt buộc xác thực..."
                            rows={4}
                            value={broadcastMsg}
                            onChange={e => setBroadcastMsg(e.target.value)}
                            style={{ width: '100%', marginBottom: '16px', resize: 'vertical' }}
                         />
                         <button onClick={saveBroadcast} className="btn-primary" style={{ width: '100%', marginTop: 'auto' }}>
-                           <AlertTriangle size={16} /> Bấm Nút Phát Loa
+                           <AlertTriangle size={16} /> Triển Khai Kích Hoạt Khối Lệnh
                         </button>
                      </div>
 
@@ -375,10 +375,10 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                      <div className="friendly-card" style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                            <SettingsIcon size={22} color="var(--primary)" />
-                           <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Hạng Mục Mặc Định (Chính Phủ)</h3>
+                           <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Bộ Phân Loại Giao Dịch Cố Định</h3>
                         </div>
                         <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                           Đây là các Nhãn dán thu/chi mà người dùng bắt buộc nhìn thấy và có thể chọn. Mọi tài khoản đều có chung tập Mặc Định này.
+                           Chỉ mục dành riêng để giới hạn danh sách chi tiêu mà người dùng có quyền chọn. Phân hệ AI cũng dùng cơ sở dữ liệu học sâu này để đối chiếu.
                         </p>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px', flex: 1, alignContent: 'flex-start' }}>
                            {systemCategories.map((c, i) => (
@@ -387,11 +387,11 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                                 <span onClick={() => handleDelCat(c)} style={{ cursor: 'pointer', opacity: 0.5 }}>✕</span>
                               </div>
                            ))}
-                           {systemCategories.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Trống trơn...</span>}
+                           {systemCategories.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Chưa thiết lập định chuẩn.</span>}
                         </div>
                         <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
-                           <input type="text" className="input-friendly" placeholder="Nhập tên Danh mục..." value={newCat} onChange={e => setNewCat(e.target.value)} style={{ flex: 1 }} />
-                           <button onClick={handleAddCat} className="btn-secondary">Ghim Mới (+)</button>
+                           <input type="text" className="input-friendly" placeholder="Nhập định dạng từ khóa..." value={newCat} onChange={e => setNewCat(e.target.value)} style={{ flex: 1 }} />
+                           <button onClick={handleAddCat} className="btn-secondary">Mã Hóa Định Trí</button>
                         </div>
                      </div>
                   </div>
@@ -402,15 +402,15 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
              {activeTab === 'logs' && (
                <motion.div key="logs" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                   <div style={{ marginBottom: '24px' }}>
-                     <h1 style={{ margin: 0 }}>Cơ Sở Dữ Liệu Camera (Log)</h1>
-                     <span style={{ color: 'var(--text-muted)' }}>Audit Log ngầm ghi lại mọi hoạt động trong thành phố 24/7.</span>
+                     <h1 style={{ margin: 0 }}>Kho Dữ Liệu Nhật Ký Sự Kiện</h1>
+                     <span style={{ color: 'var(--text-muted)' }}>Trung tâm theo dõi toàn trình Logging Events.</span>
                   </div>
 
                   <div className="friendly-card" style={{ padding: '0', overflow: 'hidden' }}>
                      <div style={{ padding: '16px 24px', background: 'var(--primary-bg)', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <span style={{ fontSize: '14px', color: 'var(--primary)', fontWeight: 'bold' }}>NHẬT KÝ ĐẦU GHI AI</span>
+                         <span style={{ fontSize: '14px', color: 'var(--primary)', fontWeight: 'bold' }}>AUDIT LOGS / TRACKING</span>
                          <button onClick={handleClearLogs} className="btn-secondary" style={{ padding: '8px 16px', color: 'var(--danger)', background: 'var(--danger-bg)', border: 'none' }}>
-                           <Trash2 size={16} /> Format Ổ Cứng
+                           <Trash2 size={16} /> Triệt Tiêu Dữ Liệu Máy Chủ
                          </button>
                      </div>
                      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
@@ -432,7 +432,7 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                      {logs.length === 0 && (
                         <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
                            <Activity size={48} style={{ opacity: 0.2, margin: '0 auto 16px auto' }} />
-                           Hệ thống Camera đang chong đèn vắng vẻ. Trạng thái ổ cứng: Trống.
+                           Hệ thống Audit Logs ghi nhận trống rỗng.
                         </div>
                      )}
                   </div>

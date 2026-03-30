@@ -253,7 +253,7 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                   </div>
                   
                   {/* Premium Stats Cards */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px', marginBottom: '32px' }}>
                      <div className="friendly-card" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)', border: '1px solid var(--border-light)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)', fontWeight: '700', fontSize: '13.5px', letterSpacing: '0.5px' }}>
                            <div style={{ background: 'var(--primary-bg)', padding: '10px', borderRadius: '12px', color: 'var(--primary)' }}>
@@ -268,18 +268,9 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                            <div style={{ background: 'var(--success-bg)', padding: '10px', borderRadius: '12px', color: 'var(--success)' }}>
                               <Activity size={20} />
                            </div>
-                           KHỐI LƯỢNG GIAO DỊCH
+                           KHỐI LƯỢNG GIAO DỊCH DỮ LIỆU
                         </div>
                         <span style={{ fontSize: '3.2rem', fontWeight: '900', color: 'var(--text-primary)', lineHeight: '1' }}>{allTransactions.length}</span>
-                     </div>
-                     <div className="friendly-card" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)', border: '1px solid var(--border-light)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)', fontWeight: '700', fontSize: '13.5px', letterSpacing: '0.5px' }}>
-                           <div style={{ background: '#f3e8ff', padding: '10px', borderRadius: '12px', color: '#8b5cf6' }}>
-                              <ShieldCheck size={20} />
-                           </div>
-                           TỔNG VỐN CHU CHUYỂN
-                        </div>
-                        <span style={{ fontSize: '3.2rem', fontWeight: '900', color: 'var(--text-primary)', lineHeight: '1' }}>{(totalMoneyFlow / 1000000).toFixed(1)}<span style={{fontSize: '1.5rem', marginLeft:'4px', color: 'var(--text-muted)'}}>Tr</span></span>
                      </div>
                   </div>
 
@@ -385,7 +376,7 @@ export default function AdminDashboard({ usersDB, setUsersDB, onLogout, allTrans
                             {/* CỘT 3: STATS */}
                             <td style={{ padding: '20px 24px' }}>
                                <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{stats.txCount} bản ghi phát sinh</span>
-                               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Dung lượng: <b>{stats.totalAmount.toLocaleString('vi-VN')} đ</b></div>
+                               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Hoạt động Data: <b>Đã Mã Hoá Ẩn</b></div>
                                {stats.hasIrregular && !u.isDeleted && <div style={{ fontSize: '11px', color: 'var(--danger)', marginTop: '4px', fontWeight: 'bold' }}>⚠️ Tệp Cảnh Báo: Chứa lượt dao động tài chính trên 100Tr</div>}
                             </td>
                             {/* CỘT 4: ACTIONS */}

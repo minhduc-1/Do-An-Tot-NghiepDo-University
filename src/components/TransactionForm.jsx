@@ -15,7 +15,7 @@ export default function TransactionForm({ onClose, onAdd }) {
      setSysCategories(loadData('system_categories', ['Ăn uống', 'Di chuyển', 'Mua sắm', 'Sinh hoạt', 'Lương/Thưởng']));
   }, []);
   
-  // AI Simulation: Tự động Bóc tách chuỗi (VD: "Uống trà đá 15k" => 15000)
+  // Phân tích thông minh SMS và nhập liệu thường
   useEffect(() => {
     if (!smartInput) {
       setParsedData({ category: 'Khác', amount: '', note: '' });
@@ -25,32 +25,49 @@ export default function TransactionForm({ onClose, onAdd }) {
     let noteStr = smartInput;
     let amountVal = '';
     
-    // Tìm con số (có thể có k, m phía sau)
-    const match = smartInput.match(/(\d+)(k|m|tr|ngàn|nghin)?/i);
-    if (match) {
-       let num = parseInt(match[1]);
-       const suffix = match[2]?.toLowerCase();
+    // Regex lấy số tiền (hỗ trợ định dạng có dấu phẩy: 150,000, 150.000 hoặc k, m)
+    const exactSmsMatch = smartInput.match(/(?:chi|trừ|thanh toán|thu|nhận|cộng)\s*([\d,\.]+)/i);
+    const generalMatch = smartInput.match(/([\d,\.]+)(k|m|tr|ngàn|nghin)?/i);
+
+    if (exactSmsMatch) {
+       amountVal = parseInt(exactSmsMatch[1].replace(/[,.]/g, ''));
+    } else if (generalMatch) {
+       let numStr = generalMatch[1].replace(/,/g, '');
+       if (numStr.includes('.') && numStr.split('.')[1].length === 3) {
+           numStr = numStr.replace(/\./g, '');
+       }
+       let num = parseInt(numStr);
+       const suffix = generalMatch[2]?.toLowerCase();
        if (suffix === 'k' || suffix === 'ngàn' || suffix === 'nghin') num *= 1000;
        if (suffix === 'm' || suffix === 'tr') num *= 1000000;
-       amountVal = num;
-       noteStr = smartInput.replace(match[0], '').trim();
+       
+       if (!isNaN(num)) {
+          amountVal = num;
+       }
     }
     
-    // Gợi ý danh mục từ Note
-    const txt = noteStr.toLowerCase();
+    // Gợi ý danh mục từ SMS
+    const txt = smartInput.toLowerCase();
     let cat = 'Khác';
-    if (txt.includes('ăn') || txt.includes('uống') || txt.includes('phở') || txt.includes('cafe') || txt.includes('trà')) cat = 'Ăn uống';
-    else if (txt.includes('đi') || txt.includes('xăng') || txt.includes('grab')) cat = 'Di chuyển';
+    if (txt.includes('ăn') || txt.includes('uống') || txt.includes('phở') || txt.includes('cafe') || txt.includes('trà') || txt.includes('circle k') || txt.includes('highland')) cat = 'Ăn uống';
+    else if (txt.includes('đi') || txt.includes('xăng') || txt.includes('grab') || txt.includes('gojek') || txt.includes('be')) cat = 'Di chuyển';
     else if (txt.includes('điện') || txt.includes('nước') || txt.includes('nhà')) cat = 'Sinh hoạt';
     else if (txt.includes('lương') || txt.includes('thưởng')) cat = 'Lương/Thưởng';
-    else if (txt.includes('sắm') || txt.includes('đồ') || txt.includes('quần áo')) cat = 'Mua sắm';
+    else if (txt.includes('sắm') || txt.includes('đồ') || txt.includes('quần áo') || txt.includes('shopee') || txt.includes('lazada') || txt.includes('tiktok')) cat = 'Mua sắm';
+
+    // Xác định loại giao dịch (Thu / Chi)
+    if (txt.includes('chi') || txt.includes('trừ') || txt.includes('thanh toán')) {
+       setTxType('expense');
+    } else if (txt.includes('thu') || txt.includes('cộng') || txt.includes('nhận')) {
+       setTxType('income');
+    }
 
     // Ưu tiên đè danh mục Mặc định từ Hệ thống nếu từ khóa khớp
     sysCategories.forEach(c => {
        if (txt.includes(c.toLowerCase())) cat = c;
     });
 
-    setParsedData({ category: cat, amount: amountVal, note: noteStr || 'Giao dịch nhanh' });
+    setParsedData({ category: cat, amount: amountVal, note: smartInput || 'Giao dịch tự động' });
   }, [smartInput, sysCategories]);
 
   const handleSubmit = (e) => {

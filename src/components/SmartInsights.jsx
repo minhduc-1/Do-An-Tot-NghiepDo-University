@@ -59,6 +59,26 @@ export default function SmartInsights({ transactions, goals, currency, onDeleteG
     const currCategories = currentMonthTx.reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount); return acc; }, {});
     const prevCategories = prevMonthTx.reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount); return acc; }, {});
 
+    const monthTotal = currentMonthTx.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    if (monthTotal > 0) {
+        const foodPercent = (currCategories['Ăn uống'] || 0) / monthTotal * 100;
+        const shoppingPercent = (currCategories['Mua sắm'] || 0) / monthTotal * 100;
+        const transportPercent = (currCategories['Di chuyển'] || 0) / monthTotal * 100;
+
+        if (foodPercent > 40) {
+            recommendations.push(`Bạn đang chi nhiều cho ăn uống (${foodPercent.toFixed(1)}%). Cân nhắc nấu ở nhà để tiết kiệm nhé!`);
+            score -= 5;
+        }
+        if (shoppingPercent > 30) {
+            recommendations.push(`Tỷ lệ mua sắm khá cao (${shoppingPercent.toFixed(1)}%). Hãy cân nhắc kỹ trước khi 'chốt đơn'!`);
+            score -= 5;
+        }
+        if (transportPercent > 20) {
+            recommendations.push(`Chi phí di chuyển đang chiếm tỷ trọng lớn (${transportPercent.toFixed(1)}%). Có thể cân nhắc đi chung xe hoặc phương tiện công cộng.`);
+            score -= 5;
+        }
+    }
+
     Object.keys(currCategories).forEach(cat => {
         const currCatVal = currCategories[cat];
         const prevCatVal = prevCategories[cat] || 0;
@@ -71,6 +91,7 @@ export default function SmartInsights({ transactions, goals, currency, onDeleteG
              recommendations.push(`Khoản chi mới cho [ ${cat} ] đang khá cao. Bạn nên theo dõi ngân sách sát sao.`);
         }
     });
+
     
     if (recommendations.length === 0) recommendations.push("Tiếp tục duy trì phong độ giữ tiền đỉnh cao này!");
 

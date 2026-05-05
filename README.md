@@ -14,19 +14,6 @@
 * **🤝 Group Fund Management & Social Rank (Split Bill):** Automated bill-splitting and transparent reconciliation feature for groups. Includes a unique spending credit scoring system, honoring the Top 15% of users with the most efficient financial management habits on the platform.
 * **📊 Dashboard Analytics:** Provides a comprehensive overview of Cash Flow (Income/Expense) over the last 7 days via interactive charts. Supports secure data backup and full data extraction to `.csv` and `.json` formats.
 
-## 🔑 Demo Credentials
-
-The system is protected by an internal authentication flow. Please use the following accounts to experience the app:
-
-* **Admin Account (Monitoring & Administration):**
-  * Email: `admin@gmail.com`
-  * Password: `admin`
-
-* **User Account (Personal Experience):**
-  * Email: *(Use any email ending with @gmail.com)*
-  * Password: `123456`
-  * Simulated OTP Code: `888888`
-
 ## 💻 Tech Stack
 
 * **Frontend & UI/UX:** Developed on **ReactJS 18** and **Vite** for optimized build performance. The interface is designed following modern Fintech standards, featuring an automatic real-time Light/Dark Mode toggle using Vanilla CSS.
